@@ -14,7 +14,6 @@ def getSignalList(sensor, component=None):
 	else:
 		return list(jsonColumns['sensors'][sensor][component])
 
-
 def checkAccess():
 	print('Checking access to network drive..')
 	dl = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -31,47 +30,78 @@ def getSingleDayDir(networkLocation, sensor, year, month, date):
 	dir = os.path.join(networkLocation, sensor, str(year), str(month).zfill(2), str(date).zfill(2))
 	return dir
 
-def concatenateFiles(fileDir, cols=None, index_col=None,chunksize=None, filterOperation=True):
-	"""Concatenate dataframes from imported csv.tz"""
-	fileList = os.listdir(fileDir)
+def concatenateFiles(fileList=None,
+						fileDir=None,
+						cols=None,
+						indexCol='time',
+						chunksize=None,
+						filterOperation=True
+					):
+	"""Concatenate dataframes from imported csv.gz-format."""
+
+	if not fileList:
+		try:
+			fileList = os.listdir(fileDir)
+		except ValueError:
+			print('Either a list of files or file directory must be provided.')
+			sys.exit('Adjust user-specified input.')
 
 	# Filter data where the vessel is not in operation
 	filterColumn = 'ME1_EngineSpeed'
-	filterValue = 1770 # speed when main engine 1 is running
+	filterValue = 1770 # speed when main engine 1 is in operation
 
-	li = []
+	dfs = []
 	for file in fileList:
 		df = pd.read_csv(fileDir + '\\' + file,
 							compression='gzip',
 							header=0,
 							sep=',',
 							usecols=cols,
-							index_col=index_col,
+							index_col=indexCol,
+							chunksize=chunksize,
 							error_bad_lines=True)
 		if(filterOperation):
 			df = df[df[filterColumn] > filterValue]
-		li.append(df)
+		dfs.append(df)
+	if indexCol is None: ignoreIndex = True
+	else: ignoreIndex = False
+	return pd.concat(dfs,axis=0,ignore_index=ignoreIndex)
 
-	return pd.concat(li, axis=0, ignore_index = True)
+def getStartpath(networkLocation,sensor=None,year=None,month=None,day=None):
+	startpath = networkLocation
+	for item in [sensor, year, month, day]:
+		if item is not None: startpath = os.path.join(startpath, str(item))
+		else: break
+	return startpath
 
-def readSelectedColumnsFromFile(fileDir, cols):
-	return pd.read_csv(fileDir, compression='gzip', header=0, sep=',', error_bad_lines=True)
 
-# def list_files(startpath):
-# 	sparseDegree = {}
-# 	for root, dirs, files in os.walk(startpath):
-# 		level = root.replace(startpath, '').count(os.sep)
-# 		indent = ' ' * 4 * (level)
-# 		print('{}{}/'.format(indent, os.path.basename(root)))
-# 		subindent = ' ' * 4 * (level + 1)
-# 		# for f in files:
-# 		print('{}'.format(subindent))
-# 		if files != []:
-# 			df = concatenateFiles(root)
-# 			sparseList = df.count()/df.shape[0]
-# 			sparseDegree[getDatetime(files[0])] = allEqual(sparseList, 1)
-# 	return sparseDegree
-			# fileDir, fileList = getSingleDayFiles('Z',startpath, )
+
+"""
+fm.getData(
+                        fileDir=startpath,
+                        cols=cols,
+                        indexCol=indexCol,
+                        chunksize=chunksize,
+                        filterOperation=filterOperation
+                    )
+"""
+
+def getData(rootDir,cols,indexCol=None,chunksize=None,filterOperation=True):
+	if indexCol is None: ignoreIndex = True
+	else: ignoreIndex = False
+
+	dfs = []
+	for root, dirs, files in os.walk(rootDir):
+		if files != []:
+			print(root)
+			df = concatenateFiles(fileDir=root,
+									cols=cols,
+									indexCol=indexCol,
+									chunksize=chunksize,
+									filterOperation=filterOperation)
+			print(df.shape)
+			dfs.append(df)
+	return pd.concat(dfs,axis=0,ignore_index=ignoreIndex)
 
 def allEqual(list, val):
 	"""Returns boolean value corresponding to all values in a list array being equal"""
@@ -88,32 +118,9 @@ def getDatetime(fileName):
 def toDatetime(time, format='%Y-%m-%d %H:%M:%S.%f'):
 	return pd.to_datetime(time, format=format)
 
-if __name__ == '__main__':
-	# Meta = Meta()
-	# checkPath()
-	# sparseDegree = list_files('Z:nogvaEngine')
-	# fileDir = getSingleDayDir('Z:','nogvaEngine',2019, 11, 21)
-	# dataFrame = concatenateFiles(fileDir)
-	# # fig = plt.line(dataFrame, x='time', y='ME1_ExhaustTemp1')
-	# df = dataFrame.filter(['time','ME1_ExhaustTemp1', 'ME1_ExhaustTemp2'])
-	# df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S.%f')
-	# # 2019-11-21 10:50:00.000
-	# df = df.set_index('time')
-	# plt.figure()
-	# df.plot()
-	# plt.show()
-	# dataFrame.count()/dataFrame.shape[0]
-	# print('')
-
-	dfs = []
-	for d in range(1,8):
-		dir = getSingleDayDir('Z:','NogvaEngine', 2020, 5, d)
-		df = concatenateFiles(dir)
-		df['time'] = toDatetime(df['time'])
-		df = df.set_index('time')
-		df = df[['ME1_ExhaustTemp1','ME1_ExhaustTemp2']]
-		dfs.append(df)
-	df = pd.concat(dfs)
+def plotDataframe(df):
 	df.plot()
 	plt.show()
-	print('done')
+
+if __name__ == '__main__':
+	sys.exit('Run from manage-file, not file management.')
