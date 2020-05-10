@@ -1,11 +1,14 @@
 from src import fileManagement as fm
+from src import memory as mem
+from src import model
 
 if __name__ == '__main__':
     # Check if the user is connected to the network drive
     networkDir = fm.checkAccess()
 
     ##########################################################################
-    ############################### INPUT DATA ###############################
+    ###########################     INPUT DATA     ###########################
+    ##########################################################################
     # Desired sensor(s) and component(s)
     sensors = 'NogvaEngine'
     components = 'ME1'      # optional
@@ -13,9 +16,9 @@ if __name__ == '__main__':
     #             }
 
     # Desired time-period of training set
-    year = 2019     # None: all available data will be used
-    month = 11    # None: all available data in given year will be used
-    day = 21      # None: all available data in given month will be used
+    year = 2019  # None: all available data will be used
+    month = 11 # None: all available data in given year will be used
+    day = None # None: all available data in given month will be used
 
     # Reading and filtering of data
     indexCol = 'time' # index column
@@ -27,6 +30,7 @@ if __name__ == '__main__':
     # filterValue = 1770
 
     ##########################################################################
+    ###########################  RETRIEVING DATA   ###########################
     ##########################################################################
 
     # Get all signals from desired sensor(s) and component(s)
@@ -36,13 +40,32 @@ if __name__ == '__main__':
     startpath = fm.getStartpath(networkDir, sensors, year, month, day)
 
     # Get a dataframe containing desired data in desired formats
-    data = fm.getData(
-                        rootDir=startpath,
-                        cols=cols,
-                        indexCol=indexCol,
-                        chunksize=chunksize,
-                        filterOperation=filterOperation
-                    )
+
+    createDataFile = False
+    if createDataFile:
+        data = fm.getData(
+                            rootDir=startpath,
+                            cols=cols,
+                            indexCol=indexCol,
+                            chunksize=chunksize,
+                            filterOperation=filterOperation
+                        )
+        mem.store(data, 'store')
+        mem.store([year,month,day], 'store_meta')
+
+    ##########################################################################
+    ###########################   CREATING MODEL  ############################
+    ##########################################################################
+    data = mem.load()
+    metadata = mem.loadMeta()
+    metadata = [['--'] if x is None else x for x in metadata]
+    print('Data from {} loaded into memory.'.format(metadata))
+
+    model.create(data)
+
+    ##########################################################################
+    ########################### VISUALIZE RESULTS ############################
+    ##########################################################################
     values = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2']
     fm.dfPlot(data, values)
     print("Hello world!")
