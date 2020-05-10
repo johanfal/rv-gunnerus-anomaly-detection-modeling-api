@@ -14,8 +14,8 @@ if __name__ == '__main__':
 
     # Desired time-period of training set
     year = 2019     # None: all available data will be used
-    month = None    # None: all available data in given year will be used
-    day = None      # None: all available data in given month will be used
+    month = 11    # None: all available data in given year will be used
+    day = 21      # None: all available data in given month will be used
 
     # Reading and filtering of data
     indexCol = 'time' # index column
@@ -43,7 +43,6 @@ if __name__ == '__main__':
                         chunksize=chunksize,
                         filterOperation=filterOperation
                     )
-    dfExhaustTempME1 = data.filter(['ME1_ExhaustTemp1','ME1_ExhaustTemp2'])
-    dfExhaustTempME1.plot()
-    plt.show()
-    print("hello world!")
+    values = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2']
+    fm.dfPlot(data, values)
+    print("Hello world!")
