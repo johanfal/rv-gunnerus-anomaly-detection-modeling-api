@@ -1,6 +1,6 @@
 from src import fileManagement as fm
 from src import memory as mem
-from src import model
+from models import sample
 
 if __name__ == '__main__':
     # Check if the user is connected to the network drive
