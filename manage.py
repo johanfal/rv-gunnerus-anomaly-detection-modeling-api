@@ -1,6 +1,6 @@
 from src import fileManagement as fm
 from src import memory as mem
-from models import sample
+from models import sample as model
 
 if __name__ == '__main__':
     # Check if the user is connected to the network drive
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     # Desired time-period of training set
     year = 2019  # None: all available data will be used
     month = 11 # None: all available data in given year will be used
-    day = None # None: all available data in given month will be used
+    day = 21 # None: all available data in given month will be used
 
     # Reading and filtering of data
     indexCol = 'time' # index column
@@ -50,16 +50,20 @@ if __name__ == '__main__':
                             chunksize=chunksize,
                             filterOperation=filterOperation
                         )
-        mem.store(data, 'store')
-        mem.store([year,month,day], 'store_meta')
+        if data.empty:
+            print('No data in the selected interval qualifies the filtering conditions. No variables have been pickled to memory.')
+        else:
+            filenameStoring = 'store'
+            mem.store(data, filenameStoring)
+            mem.storeTimeInterval(data.index[0], data.index[-1], filenameStoring + '_timeint')
 
     ##########################################################################
     ###########################   CREATING MODEL  ############################
     ##########################################################################
-    data = mem.load()
-    metadata = mem.loadMeta()
-    metadata = [['--'] if x is None else x for x in metadata]
-    print('Data from {} loaded into memory.'.format(metadata))
+    filenameLoading = 'store_nov_2019'
+    data = mem.load(filenameLoading)
+    timeint = mem.loadMeta(filenameLoading + '_timeint')
+    print('Data from {} to {} loaded into memory.'.format(timeint[0], timeint[-1]))
 
     model.create(data)
 
@@ -68,4 +72,6 @@ if __name__ == '__main__':
     ##########################################################################
     values = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2']
     fm.dfPlot(data, values)
-    print("Hello world!")
+
+
+    print("Hello world!") # ! REMOVE (used for debugging breakpoint)
