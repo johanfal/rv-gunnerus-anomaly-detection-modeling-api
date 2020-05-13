@@ -8,6 +8,17 @@ def store(obj, filename='store'):
     print("Object succesfully stored as '{}.pckl' in src/datastore".format(filename))
     return
 
+def storeTimeInterval(start, end, filename='store_timeint'):
+    f = open('src/datastore/{}.pckl'.format(filename), 'wb')
+    obj = []
+    for timestamp in [start, end]:
+        dateString = str(timestamp.day) + '-' + str(timestamp.month) + '-'+ str(timestamp.year)
+        obj.append(dateString)
+    pickle.dump(obj, f)
+    f.close()
+    print("Object succesfully stored as '{}.pckl' in src/datastore".format(filename))
+    return
+
 def load(filename='store'):
     f = open('src/datastore/{}.pckl'.format(filename), 'rb')
     obj = pickle.load(f)
