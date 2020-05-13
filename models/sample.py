@@ -15,27 +15,6 @@ def create(data, trainPct=0.8):
     arrTrain = scaler.transform(dfTrain)
     arrTest = scaler.transform(dfTest)
 
-    dfTrain2 = dfTrain.filter(['ME1_EngineSpeed'])
-    dfTest2 = dfTest.filter(['ME1_EngineSpeed'])
-
-    colCounter = 0
-    scaler2 = StandardScaler()
-    for col in dfTrain.columns:
-        scaler3 = scaler2.fit(dfTrain[[col]])
-
-        cmparrTrain = np.array([[i[colCounter]] for i in arrTrain])
-        cmparrTest = np.array([[i[colCounter]] for i in arrTest])
-        arrTrain3 = scaler3.transform(dfTrain[[col]])
-        arrTest3 = scaler3.transform(dfTest[[col]])
-
-        print(col, 'train', np.array_equal(cmparrTrain, arrTrain3))
-        print(col, 'test', np.array_equal(cmparrTest, arrTest3))
-        colCounter += 1
-
-    scaler2 = scaler.fit(dfTrain2[['ME1_EngineSpeed']])
-    arrTrain2 = scaler.transform(dfTrain2[['ME1_EngineSpeed']])
-    arrTest2 = scaler.transform(dfTest2[['ME1_EngineSpeed']])
-
     timeSteps = 100
 
     XTrain, yTrain = createSubsequence(
