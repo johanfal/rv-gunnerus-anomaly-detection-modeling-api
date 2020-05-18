@@ -3,3 +3,5 @@ __pycache__
 .vscode
 *.pckl
 *.exh_temp_svg
+.gitignore
+!test.pickl
