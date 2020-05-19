@@ -70,16 +70,16 @@ if __name__ == '__main__':
     ##########################################################################
 
     TRAINING_PCT = 0.8
+    TIMESTEPS = 25
 
-    model = model.create(data, training_pct=TRAINING_PCT)
+    model = model.create(data,training_pct=TRAINING_PCT,timesteps=TIMESTEPS)
     # model.predict(...)
 
 
     ##########################################################################
     ########################### VISUALIZE RESULTS ############################
     ##########################################################################
-    values = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2']
-    fm.df_plot(data, values)
+
 
 
     print("Hello world!") # ! REMOVE (used for debugging breakpoint)
