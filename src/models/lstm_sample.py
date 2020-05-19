@@ -9,19 +9,19 @@ from tensorflow import keras
 
 def create(data,training_pct=0.8,timesteps=100):
     CREATE_DATA_FILE = False # ! Not implemented functionality for this
-    DO_TRANSFORM = False
-    DO_RESHAPE = False
+    DO_TRANSFORM = True
+    NORMAL_DIST = False # True if the data is known to have a normal distribution (changes transform function)
+    DO_RESHAPE = True
     DELETE_PICKLED_FILES = False  # ! Not implemented functionality for this
     SIZE_LIMIT_TRAIN = 80000 # ! REMOVE, and remove dependies in DO_RESHAPE-logic
     SIZE_LIMIT_TEST = 20000 # ! REMOVE, and remove dependies in DO_RESHAPE-logic
     OUTPUT_COLS = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2'] # desired columns to predict the values of. If None, all values will be predicted
 
-
     if DO_TRANSFORM:
-        df_train, df_test = fnc.transform(data, training_pct)
-        mem.store([df_train, df_test], 'transformed')
+        scaler, df_train, df_test = fnc.transform(data, training_pct, normal_dist=NORMAL_DIST)
+        mem.store([scaler, df_train, df_test], 'transformed')
     else:
-        [df_train, df_test] = mem.load('transformed')
+        [scaler, df_train, df_test] = mem.load('transformed')
     if DO_RESHAPE:
         X_train, y_train = fnc.reshape_data(df_train,timesteps,output_cols=OUTPUT_COLS,bar_desc='Reshaping training data..')
         X_test, y_test = fnc.reshape_data(df_test,timesteps,output_cols=OUTPUT_COLS,bar_desc='Reshaping test data..')
