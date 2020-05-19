@@ -9,7 +9,7 @@ from tensorflow import keras
 
 def create(data,training_pct=0.8,timesteps=100):
     CREATE_DATA_FILE = False # ! Not implemented functionality for this
-    DO_TRANSFORM = False
+    DO_TRANSFORM = True
     DO_RESHAPE = False
     DELETE_PICKLED_FILES = False  # ! Not implemented functionality for this
     SIZE_LIMIT_TRAIN = 80000 # ! REMOVE, and remove dependies in DO_RESHAPE-logic
@@ -38,23 +38,14 @@ def create(data,training_pct=0.8,timesteps=100):
 
     model = keras.Sequential()
 
-    # OLD MODEL
-    # model.add(keras.layers.LSTM(units=UNITS,
-    #                             input_shape=(X_train.shape[1], X_train.shape[2])
-    #                             ))
-
-    # model.add(keras.layers.Dropout(rate=RATE))
-    # model.add(keras.layers.RepeatVector(n=X_train.shape[1]))
-    # model.add(keras.layers.LSTM(units=UNITS, return_sequences=RETURN_SEQUENCE))
-    # model.add(keras.layers.Dropout(rate=RATE))
-    # model.add(
-    #     keras.layers.TimeDistributed(
-    #         keras.layers.Dense(units=X_train.shape[2])
-    #     ))
-
     # NEW MODEL
     model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
-    model.add(keras.layers.Dense(y_train.shape[1])) # 12 output variables
+    model.add(keras.layers.Dropout(rate=RATE))
+    model.add(keras.layers.RepeatVector(n=X_train.shape[1]))
+    model.add(keras.layers.TimeDistributed(
+    keras.layers.Dense(2))
+    ) # 12 output variables
+    # model.add(keras.layers.Dense(y_train.shape[1])) # 12 output variables
 
     EPOCHS = 15
     BATCH_SIZE = 32
