@@ -5,7 +5,9 @@ from sklearn.preprocessing import StandardScaler
 from src.funcs.file_management import get_progress_bar
 
 def transform(data, training_pct=0.8):
-    """Description."""
+    """Transforms a given set of data to normalized sets of training and
+    testing data. The transformed values are returned as two dataframes,
+    representing the training data and testing data, respectively."""
 
     # Create training and testing sets
     train_size = int(np.ceil(data.shape[0] * training_pct))
@@ -26,18 +28,30 @@ def transform(data, training_pct=0.8):
     return df_train, df_test
 
 
-def reshape_data(df, timesteps = 1, bar_desc=None):
-    """Description."""
+def reshape_data(df, timesteps = 1, output_cols=None, bar_desc=None):
+    """Reshapes a given dataframe to a 3D tensor based on the columns in the
+    data (desired features), desired timesteps, and desired output columns
+    (features to predict). The optional argument bar_desc is a description for
+    the progress bar printed to the console."""
 
     Xs, ys = [], [] # empty placeholders
     range_max = df.shape[0] - timesteps # iteration range
 
     bar = get_progress_bar(range_max, bar_desc).start() # progress bar
 
+    df_x = df
+
+    # If the desired number of outputs (values to be predicted) is not the same
+    # as the number of inputs (features), create a filtered dataframe
+    if output_cols is not None:
+        df_y = df[output_cols]
+    else:
+        df_y = df
+
     for i in range(range_max):
         bar.update(i+1)
-        Xs.append(df.iloc[i:(i + timesteps)].values)
-        ys.append(df.iloc[i + timesteps])
+        Xs.append(df_x.iloc[i:(i + timesteps)].values) # add timesteps t-N to t-1 (i:(i+timesteps))
+        ys.append(df_y.iloc[i + timesteps].values) # add timestep t (i+timesteps)
     bar.finish()
     return np.array(Xs), np.array(ys)
 
