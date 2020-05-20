@@ -23,12 +23,13 @@ def create(data,training_pct=0.8,timesteps=100):
     else:
         [scaler, df_train, df_test] = mem.load('transformed')
     if DO_RESHAPE:
+        print(f"Training data dimensionsality: {df_train.shape}")
         X_train, y_train = fnc.reshape_data(df_train,timesteps,output_cols=OUTPUT_COLS,bar_desc='Reshaping training data..')
+        print(f"Test data dimensionality: {df_test.shape}")
         X_test, y_test = fnc.reshape_data(df_test,timesteps,output_cols=OUTPUT_COLS,bar_desc='Reshaping test data..')
         print("Storing reshaped dataframes as 'src/datastore/reshaped.pckl'.")
         reshaped = mem.store([X_train, y_train, X_test, y_test], 'reshaped')
         print("Data succesfully reshaped and stored.")
-        print(f"Dimensions: X_train({X_train.shape}) | y_train({y_train.shape}) | X_test({X_test.shape}) | y_test ({y_test.shape})")
     else:
         [X_train, y_train, X_test, y_test] = mem.load('reshaped')
 
@@ -66,7 +67,14 @@ def create(data,training_pct=0.8,timesteps=100):
 
     history = model.fit(X_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_test, y_test), verbose=2, shuffle=False)
 
+    MODELSTRING = f"ts-{timesteps}_ep-{EPOCHS}_un-{UNITS}_bs-{BATCH_SIZE}"
+
+    mem.save_model(model, history, modelstring=MODELSTRING)
+
     y_hat = model.predict(X_test)
+
+
+    # Need to inverse transform data
 
     y_pred1 = [row[0] for row in y_hat]
     y_pred2 = [row[1] for row in y_hat]
@@ -97,10 +105,9 @@ def create(data,training_pct=0.8,timesteps=100):
     #     shuffle=SHUFFLE
     # )
 
-    print('hello world.')
     return model
 
 
 if __name__ == '__main__':
     import sys
-    sys.exit('Run from manage.py, not model.')
+    sys.exit(f'Run from manage.py, not {os.path.basename(__file__)}.')
