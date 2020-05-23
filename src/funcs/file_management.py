@@ -188,4 +188,4 @@ def get_progress_bar(range_max, bar_desc=None):
 date_parser = lambda time: pd.to_datetime(time, format='%Y-%m-%d %H:%M:%S.%f')
 
 if __name__ == '__main__':
-	sys.exit('Run from manage.py, not file management.')
+    sys.exit(f'Run from manage.py, not {os.path.basename(__file__)}.')

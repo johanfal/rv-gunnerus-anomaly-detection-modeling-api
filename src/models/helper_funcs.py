@@ -1,10 +1,12 @@
+import pickle
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from src.funcs.file_management import get_progress_bar
 
-def transform(data, training_pct=0.8):
+
+def transform(data,training_pct=0.8,normal_dist=False):
     """Transforms a given set of data to normalized sets of training and
     testing data. The transformed values are returned as two dataframes,
     representing the training data and testing data, respectively."""
@@ -15,7 +17,11 @@ def transform(data, training_pct=0.8):
     df_train, df_test = data.iloc[:train_size], data.iloc[train_size:]
 
     # Scaler
-    scaler = StandardScaler()
+    if normal_dist:
+        scaler = StandardScaler() # normalize about a zero-mean with unit variance
+    else:
+        scaler = MinMaxScaler(feature_range=(0,1)) # normalize values between 0 and 1
+
     scaler = scaler.fit(df_train[df_train.columns])
 
     arr_train = scaler.transform(df_train) # transformed training array
@@ -25,10 +31,10 @@ def transform(data, training_pct=0.8):
     df_train = pd.DataFrame(arr_train, columns=df_train.columns, index=df_train.index)
     df_test = pd.DataFrame(arr_test, columns=df_test.columns, index=df_test.index)
 
-    return df_train, df_test
+    return scaler, df_train, df_test
 
 
-def reshape_data(df, timesteps = 1, output_cols=None, bar_desc=None):
+def reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
     """Reshapes a given dataframe to a 3D tensor based on the columns in the
     data (desired features), desired timesteps, and desired output columns
     (features to predict). The optional argument bar_desc is a description for
@@ -55,6 +61,12 @@ def reshape_data(df, timesteps = 1, output_cols=None, bar_desc=None):
     bar.finish()
     return np.array(Xs), np.array(ys)
 
+
+def compare_models(models):
+    """Idea of the function is to be able to view the different parameters
+    and performance in e.g. a table. Could this be done in the web app?"""
+    return
+
 if __name__ == '__main__':
-    import sys
-    sys.exit('Run from manage.py, not model.')
+    import sys, os
+    sys.exit(f'Run from manage.py, not {os.path.basename(__file__)}.')
