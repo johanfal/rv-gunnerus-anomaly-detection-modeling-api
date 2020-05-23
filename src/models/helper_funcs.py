@@ -61,6 +61,12 @@ def reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
     bar.finish()
     return np.array(Xs), np.array(ys)
 
+
+def compare_models(models):
+    """Idea of the function is to be able to view the different parameters
+    and performance in e.g. a table. Could this be done in the web app?"""
+    return
+
 if __name__ == '__main__':
     import sys, os
     sys.exit(f'Run from manage.py, not {os.path.basename(__file__)}.')
