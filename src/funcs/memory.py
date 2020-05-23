@@ -59,8 +59,9 @@ def save_model(model,history,modelstring='unspecificed',**kwargs):
     # spec_string = spec_string[:-1]
     # modelstring = f"keras_model_{spec_string}_{datetime.time}"
     # f = open(modelstring, 'wb')
-    f = open(f"src/datastore/model_{modelstring}_{datetime.now().strftime('%Y%m%d-%H%M')}.pckl", 'wb')
-    pickle.dump([model, history], f)
+    json_model = model.to_json()
+    f = open(f"src/datastore/models/model_{datetime.now().strftime('%Y%m%d-%H%M')}_{modelstring}.pckl", 'wb')
+    pickle.dump([json_model, history.history], f)
     f.close()
     return
 
