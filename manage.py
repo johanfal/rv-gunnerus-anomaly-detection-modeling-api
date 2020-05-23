@@ -13,13 +13,15 @@ if __name__ == '__main__':
     # Desired sensor(s) and component(s)
     SENSORS = 'NogvaEngine'
     COMPONENTS = 'ME1' # optional
+    PREDICTION_COLS = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2'] # desired columns to predict the values of. If None, all values will be predicted
+
     # COMPONENTS = {'NogvaEngine':['ME1', 'ME2']
     #             }
 
     # Desired time-period of training set
     # § IMPROVEMENT: should be able to select range of years, months, or days
-    YEAR = 2019  # None: all available data will be used
-    MONTH = 11 # None: all available data in given year will be used
+    YEAR = None  # None: all available data will be used
+    MONTH = None # None: all available data in given year will be used
     DAY = 21 # None: all available data in given month will be used
 
     # Reading and filtering of data
@@ -42,7 +44,7 @@ if __name__ == '__main__':
     startpath = fm.get_startpath(network_dir, SENSORS, YEAR, MONTH, DAY)
 
     CREATE_DATA_FILE = False # if False, data will be pickle-loaded from file
-    LOAD_FILENAME = 'store_nov_2019' # name of file to be loaded if not createDataFile
+    LOAD_FILENAME = 'store_complete_data_set' # name of file to be loaded if not createDataFile
 
     # Get a dataframe containing desired data in desired formats
     if CREATE_DATA_FILE:
@@ -69,17 +71,31 @@ if __name__ == '__main__':
     ###########################   CREATING MODEL  ############################
     ##########################################################################
 
-    TRAINING_PCT = 0.8
-    TIMESTEPS = 25
+    # Model parameters
+    TRAINING_PCT=0.8
+    TIMESTEPS=60
 
-    model = model.create(data,training_pct=TRAINING_PCT,timesteps=TIMESTEPS)
+
+    CREATE_DATA_FILE = None # ! Not implemented functionality for this
+    DO_TRANSFORM=True
+    NORMAL_DIST = False # True if the data is known to have a normal distribution (changes transform function)
+    DO_RESHAPE=True
+    DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
+
+    model = model.create(data,
+                            prediction_cols=PREDICTION_COLS,
+                            training_pct=TRAINING_PCT,
+                            timesteps=TIMESTEPS,
+                            create_data_file=CREATE_DATA_FILE,
+                            do_transform=DO_TRANSFORM,
+                            normal_dist=NORMAL_DIST,
+                            do_reshape=DO_RESHAPE,
+                            delete_pickled_files=DELETE_PICKLED_FILES
+                        )
+
     # model.predict(...)
 
 
     ##########################################################################
     ########################### VISUALIZE RESULTS ############################
     ##########################################################################
-
-
-
-    print("Hello world!") # ! REMOVE (used for debugging breakpoint)

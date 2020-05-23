@@ -7,35 +7,42 @@ from src.funcs import memory as mem
 from src.models import helper_funcs as fnc
 from tensorflow import keras
 
-def create(data,training_pct=0.8,timesteps=100):
-    CREATE_DATA_FILE = False # ! Not implemented functionality for this
-    DO_TRANSFORM = True
-    NORMAL_DIST = False # True if the data is known to have a normal distribution (changes transform function)
-    DO_RESHAPE = True
-    DELETE_PICKLED_FILES = False  # ! Not implemented functionality for this
-    SIZE_LIMIT_TRAIN = 80000 # ! REMOVE, and remove dependies in DO_RESHAPE-logic
-    SIZE_LIMIT_TEST = 20000 # ! REMOVE, and remove dependies in DO_RESHAPE-logic
-    OUTPUT_COLS = ['ME1_ExhaustTemp1','ME1_ExhaustTemp2'] # desired columns to predict the values of. If None, all values will be predicted
+def create(data,
+            prediction_cols=None,
+            training_pct=0.8,
+            timesteps=100,
+            create_data_file=True,
+            do_transform=True,
+            normal_dist=False,
+            do_reshape=True,
+            delete_pickled_files=True
+        ):
 
-    if DO_TRANSFORM:
-        scaler, df_train, df_test = fnc.transform(data, training_pct, normal_dist=NORMAL_DIST)
+    if prediction_cols is None:
+        prediction_cols = data.columns
+
+
+    LOAD_RESHAPED = 'reshaped_complete_data_set' # ! REMOVE or find alternative
+    LOAD_TRANSFORMED = 'transformed_complete_data_set' # ! REMOVE or find alternative
+
+    if do_transform:
+        scaler, df_train, df_test = fnc.transform(data, training_pct, normal_dist=normal_dist)
         mem.store([scaler, df_train, df_test], 'transformed')
     else:
-        [scaler, df_train, df_test] = mem.load('transformed')
-    if DO_RESHAPE:
+        [scaler, df_train, df_test] = mem.load(filename=LOAD_TRANSFORMED)
+    if do_reshape:
         print(f"Training data dimensionsality: {df_train.shape}")
-        X_train, y_train = fnc.reshape_data(df_train,timesteps,output_cols=OUTPUT_COLS,bar_desc='Reshaping training data..')
+        X_train, y_train = fnc.reshape_data(df_train,timesteps,output_cols=prediction_cols,bar_desc='Reshaping training data..')
+        print(f"Reshaped training data dimensionsality: X_train: {X_train.shape} | y_train: {y_train.shape}.")
         print(f"Test data dimensionality: {df_test.shape}")
-        X_test, y_test = fnc.reshape_data(df_test,timesteps,output_cols=OUTPUT_COLS,bar_desc='Reshaping test data..')
+        X_test, y_test = fnc.reshape_data(df_test,timesteps,output_cols=prediction_cols,bar_desc='Reshaping test data..')
+        print(f"Reshaped testing data dimensionsality: X_test: {X_test.shape} | y_test: {y_test.shape}.")
         print("Storing reshaped dataframes as 'src/datastore/reshaped.pckl'.")
         reshaped = mem.store([X_train, y_train, X_test, y_test], 'reshaped')
         print("Data succesfully reshaped and stored.")
     else:
-        [X_train, y_train, X_test, y_test] = mem.load('reshaped')
+        [X_train, y_train, X_test, y_test] = mem.load(filename=LOAD_RESHAPED)
 
-    UNITS = 32
-    RETURN_SEQUENCE = True
-    RATE = 0.2
 
     model = keras.Sequential()
 
@@ -53,21 +60,25 @@ def create(data,training_pct=0.8,timesteps=100):
     #         keras.layers.Dense(units=X_train.shape[2])
     #     ))
 
+    UNITS = 128
+    RETURN_SEQUENCE = True
+    RATE = 0.2
+    EPOCHS = 30
+    BATCH_SIZE = 128
+    VALIDATION_SPLIT = 0.1
+    SHUFFLE = False
+
     # NEW MODEL
     model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
     model.add(keras.layers.Dense(y_train.shape[1])) # 12 output variables
 
-    EPOCHS = 15
-    BATCH_SIZE = 32
-    VALIDATION_SPLIT = 0.1
-    SHUFFLE = False
 
     model.compile(loss='mae', optimizer='adam')
     model.summary()
 
     history = model.fit(X_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_test, y_test), verbose=2, shuffle=False)
 
-    MODELSTRING = f"ts-{timesteps}_ep-{EPOCHS}_un-{UNITS}_bs-{BATCH_SIZE}"
+    MODELSTRING = f"ts-{str(timesteps).zfill(3)}_ep-{str(EPOCHS).zfill(2)}_un-{str(UNITS).zfill(2)}_bs-{str(BATCH_SIZE).zfill(2)}"
 
     mem.save_model(model, history, modelstring=MODELSTRING)
 
