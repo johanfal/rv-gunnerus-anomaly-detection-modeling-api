@@ -4,7 +4,21 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from src.funcs.file_management import get_progress_bar
+from src.funcs import memory as mem
 
+def get_reshaped(df_train, df_test,output_cols=None,timesteps=1):
+    """Description."""
+
+    print(f"Training data dimensionsality: {df_train.shape}")
+    X_train, y_train = reshape_data(df_train,timesteps,output_cols=output_cols,bar_desc='Reshaping training data..')
+    print(f"Reshaped training data dimensionsality: X_train: {X_train.shape} | y_train: {y_train.shape}.")
+    print(f"Test data dimensionality: {df_test.shape}")
+    X_test, y_test = reshape_data(df_test,timesteps,output_cols=output_cols,bar_desc='Reshaping test data..')
+    print(f"Reshaped testing data dimensionsality: X_test: {X_test.shape} | y_test: {y_test.shape}.")
+    print("Storing reshaped dataframes as 'src/datastore/reshaped.pckl'.")
+    mem.store([X_train, y_train, X_test, y_test], 'reshaped')
+    print("Data succesfully reshaped and stored.")
+    return  [X_train, y_train, X_test, y_test]
 
 def transform(data,training_pct=0.8,normal_dist=False):
     """Transforms a given set of data to normalized sets of training and
@@ -66,6 +80,21 @@ def compare_models(models):
     """Idea of the function is to be able to view the different parameters
     and performance in e.g. a table. Could this be done in the web app?"""
     return
+
+
+def get_modelstring(prefix='model',**kwargs):
+    """Create desired filename for storing models. Use **kwargs to specify
+    the properties of the model by specifying keywords and their corresponding
+    values. As an example, using 'units=64' will add 'units-64' to the
+    filename, indicating that the model used 64 units. Best practice is to
+    make the values dynamic, e.g. by using 'units=UNITS'."""
+    modelstring = prefix
+    for key, arg in kwargs.items():
+        if type(arg) is int:
+            arg = str(arg).zfill(3)
+        modelstring = modelstring + f"_{str(key)}-{arg}"
+    return modelstring
+    # return f"ts-{str(timesteps).zfill(3)}_ep-{str(EPOCHS).zfill(2)}_un-{str(UNITS).zfill(2)}_bs-{str(BATCH_SIZE).zfill(2)}"
 
 if __name__ == '__main__':
     import sys, os
