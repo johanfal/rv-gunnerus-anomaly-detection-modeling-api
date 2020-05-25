@@ -51,7 +51,8 @@ def concatenate_files(file_dir,
 					cols=None,
 					index_col=None,
 					chunksize=None,
-					filter_operation=True
+					filter_operation=True,
+					faulty_data=[]
 					):
 	"""Concatenate dataframes from imported csv.gz-format."""
 
@@ -63,6 +64,12 @@ def concatenate_files(file_dir,
 	# Filter data where the vessel is not in operation
 	filter_column = 'ME1_EngineSpeed'
 	filter_value = 1770 # speed when main engine 1 is in operation
+
+	# Faulty data
+	if faulty_data.__len__() is not 0:
+		faulty_dict = {}
+		for interval in faulty_data:
+			faulty_dict[interval[0]] = [interval[1], interval[2]]
 
 	# Iterate through files in desired file list
 	for file in file_list:
@@ -83,12 +90,11 @@ def concatenate_files(file_dir,
 		if(filter_operation):
 			df = df[df[filter_column] > filter_value] # filter based on appropriate measures
 
-
 		# Remove simulated error induced 21-nov 2019 between 10:50:16 and 10:56:33
-		if file == 'NogvaEngine_20191121_105000.csv.gz':
-			simulated_error_start = '2019-11-21 10:50:16.000'
-			simulated_error_end =  '2019-11-21 10:56:33.000'
-			df = remove_faulty_data(df, simulated_error_start, simulated_error_end)
+		if faulty_data.__len__() is not 0:
+			if file in faulty_dict:
+				simulated_error_start, simulated_error_end = faulty_dict[file][0], faulty_dict[file][1]
+				df = remove_faulty_data(df, simulated_error_start, simulated_error_end)
 
 		dfs.append(df) # append dataframe from file to the list of dataframes
 
@@ -179,7 +185,7 @@ def get_progress_bar(range_max, bar_desc=None):
 	""""Returns an object representing a progress bar according to the
 	progressbar module."""
 	if bar_desc:
-		print('{}'.format(bar_desc))
+		print(f'{bar_desc}'.format())
 	return progressbar.ProgressBar(maxval=range_max, \
 		widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
