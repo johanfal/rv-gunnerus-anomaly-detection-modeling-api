@@ -118,7 +118,7 @@ if __name__ == '__main__':
         [scaler, df_train, df_test] = mem.load('transformed',FILE_SUFFIX)
 
     if DO_RESHAPE:
-        [X_train, y_train, X_test, y_test] = fnc.get_reshaped(df_train,df_test,output_cols=PREDICTION_COLS,timesteps=timesteps)
+        [X_train, y_train, X_test, y_test] = fnc.get_reshaped(df_train,df_test,output_cols=PREDICTION_COLS,timesteps=TIMESTEPS)
     else:
         [X_train, y_train, X_test, y_test] = mem.load('reshaped',FILE_SUFFIX)
 
