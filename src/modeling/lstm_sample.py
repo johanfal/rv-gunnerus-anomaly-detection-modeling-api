@@ -38,28 +38,6 @@ def create(X_train,y_train,**parameters):
 
     return model
 
-def create_old_model(X_train,y_train,**parameters):
-    """Description. The function takes a variable number of keyword arguments,
-    which can be used to build the model."""
-
-    model = keras.Sequential()
-
-    # Create variables based on the desired keyword arguments used to build
-    # the model. These must be changed in accordance with the **parameters.
-    UNITS = parameters['UNITS']
-
-    # Other parameters
-    OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
-
-    model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
-    model.add(keras.layers.Dense(2))
-
-    model.compile(loss='mae', optimizer=OPTIMIZER)
-
-    model.summary() # optional printout of key model properties
-
-    return model
-
 def train(model,X_train,y_train,X_test,y_test,**parameters):
     """Description."""
 
