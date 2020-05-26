@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # File management
     CREATE_DATA_FILE = False # if False, data will be pickle-loaded from file
     FILTER_OPERATION = True  # If True, only in-operation data will be used
-    FILE_SUFFIX = None
+    FILE_SUFFIX = 'nov_2019'
     REMOVE_FAULTY_DATA = False
 
     # Faulty data that will be removed if REMOVE_FAULTY_DATA is True
@@ -64,8 +64,8 @@ if __name__ == '__main__':
     NORMAL_DIST = False # True if data has a normal distribution (affects transform function)
     DO_TRANSFORM = False
     DO_RESHAPE = False
-    DO_MODELING = False
-    DO_TESTING = False
+    DO_MODELING = True
+    DO_TESTING = True
     DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
 
     ##########################################################################
@@ -77,7 +77,6 @@ if __name__ == '__main__':
 
     # Starting path based on desired sensors or time periods
     startpath = filemag.get_startpath(network_dir, SENSORS, YEAR, MONTH, DAY)
-
 
     # Get a dataframe containing desired data in desired formats
     if CREATE_DATA_FILE:
@@ -92,8 +91,9 @@ if __name__ == '__main__':
                         )
     else:
         data = mem.load(file_suffix=FILE_SUFFIX)
-        timeint =  mem.load_time_interval(file_suffix=FILE_SUFFIX)
-        print(f'Data from {timeint[0]} to {timeint[-1]} loaded into memory.')
+        if data.index.dtype == 'datetime64[ns]':
+            timeint = [data.index[0], data.index[-1]]
+            print(f'Data from {timeint[0]} to {timeint[-1]} loaded into memory.')
 
     ##########################################################################
     ###########################   CREATING MODEL  ############################
@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
     # Data parameters
     TRAINING_PCT=1.0
-    TIMESTEPS=15
+    TIMESTEPS=5
 
     # Model parameters
     UNITS = 64
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     SCALE = 0.2
 
     # Training parameters
-    EPOCHS = 10
+    EPOCHS = 3
     BATCH_SIZE = 128
 
     if CREATE_DATA_FILE:
@@ -148,9 +148,14 @@ if __name__ == '__main__':
             file_suffix=FILE_SUFFIX
         )
     else:
+        # ! REMOVE this, it is temporary to work with specific file names
+        LOAD_TS = ''
+        if TIMESTEPS in [5,10,15,20,25,30]:
+            LOAD_TS = f'_ts-{str(TIMESTEPS).zfill(2)}'
+        RESHAPED_SUFFIX = FILE_SUFFIX + LOAD_TS
         [X_train, y_train, X_test, y_test] = mem.load(
                                                     file_prefix='reshaped',
-                                                    file_suffix=FILE_SUFFIX
+                                                    file_suffix=RESHAPED_SUFFIX
                                                 )
 
     if DO_MODELING:
@@ -161,6 +166,7 @@ if __name__ == '__main__':
                                     RETURN_SEQUENCES,
                                     SCALE
                                 )
+
         [model, history] = sample_model.train(
                                                 model,
                                                 X_train,
@@ -170,11 +176,14 @@ if __name__ == '__main__':
                                                 EPOCHS,
                                                 BATCH_SIZE
                                             )
-        modelstring = fnc.get_modelstring(ep=EPOCHS,
-                                        ts=TIMESTEPS,
-                                        un=UNITS,
-                                        bs=BATCH_SIZE
-                                    )
+
+        modelstring = fnc.get_modelstring(
+                                            ep=EPOCHS,
+                                            ts=TIMESTEPS,
+                                            un=UNITS,
+                                            bs=BATCH_SIZE
+                                        )
+
         mem.save_model(
                         model,
                         history,
@@ -201,12 +210,10 @@ if __name__ == '__main__':
                             filter_operation=FILTER_OPERATION,
                             file_suffix=FAULTY_SUFFIX
                         )
-        mem.store(
-            faulty_data,
-            file_suffix=FAULTY_SUFFIX
-        )
+        mem.store(faulty_data,file_suffix=FAULTY_SUFFIX)
     else:
         faulty_data = mem.load(file_suffix=FAULTY_SUFFIX)
+
     # faulty_data_transformed
     # X_test = None
     # y_test = None

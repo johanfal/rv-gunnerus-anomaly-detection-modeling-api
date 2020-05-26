@@ -20,29 +20,6 @@ def store(
     print(f"Object succesfully stored as '{filename}.pckl' in '{store_dir}'")
     return
 
-def store_time_interval(
-                        start,end,
-                        store_dir='src/datastore/',
-                        file_prefix=None,
-                        file_suffix=None
-                    ):
-    """Description."""
-
-    if file_prefix is None: file_prefix = 'store'
-
-    store_dir = _check_dir_string(store_dir)
-    filename = _get_filename(file_prefix, file_suffix) + '_timeint'
-
-    f = open(f'{store_dir}{filename}.pckl', 'wb')
-    obj = []
-    for timestamp in [start, end]:
-        date_string = str(timestamp.day) + '-' + str(timestamp.month) + '-'+ str(timestamp.year)
-        obj.append(date_string)
-    pickle.dump(obj, f)
-    f.close()
-    print(f"Object succesfully stored as '{filename}.pckl' in '{store_dir}'")
-    return
-
 def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None):
     """Description."""
     if file_prefix is None: file_prefix = 'store'
@@ -57,19 +34,6 @@ def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None):
         return obj
     except FileNotFoundError:
         sys.exit(f"{filename}.pckl not found in '{load_dir}'.")
-
-def load_time_interval(
-                        load_dir='src/datastore/',
-                        file_prefix=None,
-                        file_suffix=None
-                    ):
-    """Loads meta file for an accompanying data file. The meta file describes
-    the time interval of the corresponding dataset."""
-
-    if file_prefix is None: file_prefix = 'store'
-    load_dir=_check_dir_string(load_dir)
-    filename = _get_filename(file_prefix,file_suffix)
-    return load(load_dir=load_dir,file_prefix=filename,file_suffix='timeint')
 
 def delete(delete_dir='src/datastore/',file_prefix=None, file_suffix=None):
     """Description."""

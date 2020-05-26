@@ -172,11 +172,6 @@ def get_and_store_data(
 
 	else:
 		mem.store(data,file_suffix=file_suffix)
-		mem.store_time_interval(
-								data.index[0],
-								data.index[-1],
-								file_suffix=file_suffix
-							)
 	return data
 
 def concatenate_dataframes(dfs,index_col=None):
