@@ -5,3 +5,4 @@ __pycache__
 *.exh_temp_svg
 .gitignore
 !test.pickl
+src/datastore/old
