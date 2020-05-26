@@ -146,7 +146,7 @@ if __name__ == '__main__':
         # model, history = mem.load_model()
 
     if DO_TESTING:
-        NotImplementedError('Under development.')
+        raise sys.exit('Under development.')
         # performance = sample_model.test_model(model,history)
 
     faulty_data = mem.load(file_suffix='faulty_data')
