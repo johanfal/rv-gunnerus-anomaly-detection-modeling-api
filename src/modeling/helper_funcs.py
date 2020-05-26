@@ -6,18 +6,16 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from src.funcs.file_management import get_progress_bar
 from src.funcs import memory as mem
 
-def get_reshaped(df_train, df_test,output_cols=None,timesteps=1):
+def reshape(df_train, df_test,output_cols=None,timesteps=1,verbose=True):
     """Description."""
 
-    print(f"Training data dimensionsality: {df_train.shape}")
-    X_train, y_train = reshape_data(df_train,timesteps,output_cols=output_cols,bar_desc='Reshaping training data..')
-    print(f"Reshaped training data dimensionsality: X_train: {X_train.shape} | y_train: {y_train.shape}.")
-    print(f"Test data dimensionality: {df_test.shape}")
-    X_test, y_test = reshape_data(df_test,timesteps,output_cols=output_cols,bar_desc='Reshaping test data..')
-    print(f"Reshaped testing data dimensionsality: X_test: {X_test.shape} | y_test: {y_test.shape}.")
-    print("Storing reshaped dataframes as 'src/datastore/reshaped.pckl'.")
-    mem.store([X_train, y_train, X_test, y_test], 'reshaped')
-    print("Data succesfully reshaped and stored.")
+    if verbose:
+        print(f"Training data dimensionsality: {df_train.shape}")
+        X_train, y_train = _reshape_data(df_train,timesteps,output_cols=output_cols,bar_desc='Reshaping training data..')
+        print(f"Reshaped training data dimensionsality: X_train: {X_train.shape} | y_train: {y_train.shape}.")
+        print(f"Test data dimensionality: {df_test.shape}")
+        X_test, y_test = _reshape_data(df_test,timesteps,output_cols=output_cols,bar_desc='Reshaping test data..')
+        print(f"Reshaped testing data dimensionsality: X_test: {X_test.shape} | y_test: {y_test.shape}.")
     return  [X_train, y_train, X_test, y_test]
 
 def transform(data,training_pct=0.8,normal_dist=False):
@@ -48,7 +46,7 @@ def transform(data,training_pct=0.8,normal_dist=False):
     return scaler, df_train, df_test
 
 
-def reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
+def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
     """Reshapes a given dataframe to a 3D tensor based on the columns in the
     data (desired features), desired timesteps, and desired output columns
     (features to predict). The optional argument bar_desc is a description for
