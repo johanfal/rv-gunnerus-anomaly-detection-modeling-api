@@ -7,18 +7,18 @@ from src.funcs import memory as mem
 from src.modeling import helper_funcs as fnc
 from tensorflow import keras
 
-def create(X_train,y_train,**kwargs):
+def create(X_train,y_train,**parameters):
     """Description. The function takes a variable number of keyword arguments,
     which can be used to build the model."""
 
     model = keras.Sequential()
 
     # Create variables based on the desired keyword arguments used to build
-    # the model. These must be changed in accordance with the **kwargs.
-    UNITS = kwargs['UNITS']
-    RETURN_SEQUENCE = kwargs['RETURN_SEQUENCE']
-    RATE = kwargs['RATE']
-    OPTIMIZER = None
+    # the model. These must be changed in accordance with the **parameters.
+    UNITS = parameters['UNITS']
+    RETURN_SEQUENCE = parameters['RETURN_SEQUENCE']
+    RATE = parameters['RATE']
+    OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
 
     model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
     model.add(keras.layers.Dropout(rate=RATE))
@@ -32,16 +32,41 @@ def create(X_train,y_train,**kwargs):
     keras.layers.Dense(2)) # change this to use the shape of y_train
     )
 
-    model.compile(loss='mae', optimizer='adam') # try out different optimizer (dynamic loss rate?)
-    model.summary()
+    model.compile(loss='mae', optimizer=OPTIMIZER)
+
+    model.summary() # optional printout of key model properties
 
     return model
 
-def train(model,X_train,y_train,X_test,y_test,**kwargs):
+def create_old_model(X_train,y_train,**parameters):
+    """Description. The function takes a variable number of keyword arguments,
+    which can be used to build the model."""
+
+    model = keras.Sequential()
+
+    # Create variables based on the desired keyword arguments used to build
+    # the model. These must be changed in accordance with the **parameters.
+    UNITS = parameters['UNITS']
+
+    # Other parameters
+    OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
+
+    model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
+    model.add(keras.layers.Dense(2))
+
+    model.compile(loss='mae', optimizer=OPTIMIZER)
+
+    model.summary() # optional printout of key model properties
+
+    return model
+
+def train(model,X_train,y_train,X_test,y_test,**parameters):
     """Description."""
 
-    EPOCHS = kwargs['EPOCHS']
-    BATCH_SIZE = kwargs['BATCH_SIZE']
+    # Create variables based on the desired keyword arguments used to train
+    # the model. These must be changed in accordance with the **parameters.
+    EPOCHS = parameters['EPOCHS']
+    BATCH_SIZE = parameters['BATCH_SIZE']
 
     history = model.fit(X_train, y_train,
                     epochs=EPOCHS,
