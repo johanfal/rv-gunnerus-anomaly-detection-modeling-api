@@ -5,11 +5,12 @@ from datetime import datetime
 def store(
             obj,
             store_dir='src/datastore/',
-            file_prefix='store',
+            file_prefix=None,
             file_suffix=None
         ):
     """Description."""
 
+    if file_prefix is None: file_prefix = 'store'
     store_dir = _check_dir_string(store_dir)
     filename = _get_filename(file_prefix, file_suffix)
 
@@ -22,10 +23,12 @@ def store(
 def store_time_interval(
                         start,end,
                         store_dir='src/datastore/',
-                        file_prefix='store',
+                        file_prefix=None,
                         file_suffix=None
                     ):
     """Description."""
+
+    if file_prefix is None: file_prefix = 'store'
 
     store_dir = _check_dir_string(store_dir)
     filename = _get_filename(file_prefix, file_suffix) + '_timeint'
@@ -40,14 +43,14 @@ def store_time_interval(
     print(f"Object succesfully stored as '{filename}.pckl' in '{store_dir}'")
     return
 
-def load(load_dir='src/datastore/',file_prefix='store',file_suffix=None):
+def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None):
     """Description."""
-
+    if file_prefix is None: file_prefix = 'store'
     load_dir = _check_dir_string(load_dir)
     filename = _get_filename(file_prefix, file_suffix)
 
     try:
-        f = open(f'{load_dir}{filename}', 'rb')
+        f = open(f'{load_dir}{filename}.pckl', 'rb')
         obj = pickle.load(f)
         f.close()
         print(f"Object succesfully loaded from '{filename}' in '{load_dir}'")
@@ -57,19 +60,21 @@ def load(load_dir='src/datastore/',file_prefix='store',file_suffix=None):
 
 def load_time_interval(
                         load_dir='src/datastore/',
-                        file_prefix='store',
+                        file_prefix=None,
                         file_suffix=None
                     ):
     """Loads meta file for an accompanying data file. The meta file describes
     the time interval of the corresponding dataset."""
 
+    if file_prefix is None: file_prefix = 'store'
     load_dir=_check_dir_string(load_dir)
     filename = _get_filename(file_prefix,file_suffix)
-    return load(filename, 'timeint')
+    return load(load_dir=load_dir,file_prefix=filename,file_suffix='timeint')
 
-def delete(delete_dir='src/datastore/',file_prefix='store', file_suffix=None):
+def delete(delete_dir='src/datastore/',file_prefix=None, file_suffix=None):
     """Description."""
 
+    if file_prefix is None: file_prefix = 'store'
     delete_dir = _check_dir_string(delete_dir)
     filename = _get_filename(file_prefix, file_suffix)
     path = f'{delete_dir}{filename}.pckl'
@@ -85,7 +90,7 @@ def save_model(
                 model,
                 history,
                 model_dir='src/datastore/models',
-                file_prefix='model',
+                file_prefix=None,
                 modelstring='unspecificed'
             ):
     """Saves a Keras model to a file named after important properties and
@@ -99,6 +104,8 @@ def save_model(
         number of outputs
         timesteps
     """
+
+    if file_prefix is None: file_prefix = 'model'
     json_model = model.to_json()
     model_dir = _check_dir_string(model_dir)
     unique_time = datetime.now().strftime('%Y%m%d-%H%M')
@@ -109,16 +116,17 @@ def save_model(
     return
 
 def load_model(
-                file_prefix='model',
+                file_prefix=None,
                 model_dir='src/datastore/models/',
                 file_suffix=None
             ):
     """Load a model and history from a local directory, specified through
     a model directory, filename prefix and filename suffix. The suffix will
     usually contain information about the model parameters, while the prefix
-    defaults to 'model'.
+    defaults to 'model' if input value is None.
     """
 
+    if file_prefix is None: file_prefix = 'model'
     model_dir = _check_dir_string(model_dir)
     filename = f"{model_dir}"
     try:
@@ -143,13 +151,14 @@ def load_from_list_of_models(model_dir='src/datastore/models/'):
     model_dir = _check_dir_string(model_dir)
     models = os.listdir(model_dir)
     file_select = {}
+    print(f"\n\nModels in '{model_dir}':'")
     for n in range(1, models.__len__() + 1):
-        file_select[n] = models[n-1]
-        print(f"{n}: {models[n-1]}")
+        model = os.path.splitext(models[n-1])[0] # current model without ext
+        file_select[n] = model
+        print(f"{n}: {model}")
 
-    selector = None
-    print('Choose model to load:')
-    selector = input('Model number: ')
+    print('-'*max(models).__len__())
+    selector = input('Choose model number to load: ')
     try:
         selector = int(selector)
     except:
