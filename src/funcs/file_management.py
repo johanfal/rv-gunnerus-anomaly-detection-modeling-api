@@ -9,6 +9,8 @@ import pandas as pd
 import progressbar
 import win32file
 
+from src.funcs import memory as mem
+
 
 def get_signal_list(sensor, component=None):
 	"""Returns a parsed list of signals from specified columns in the
@@ -53,7 +55,7 @@ def concatenate_files(file_dir,
 					chunksize=None,
 					filter_operation=True,
 					faulty_data=[]
-					):
+				):
 	"""Concatenate dataframes from imported csv.gz-format."""
 
 	dfs = [] # list for storing dataframes to be concatenated
@@ -66,7 +68,7 @@ def concatenate_files(file_dir,
 	filter_value = 1770 # speed when main engine 1 is in operation
 
 	# Faulty data
-	if faulty_data.__len__() is not 0:
+	if faulty_data.__len__() != 0:
 		faulty_dict = {}
 		for interval in faulty_data:
 			faulty_dict[interval[0]] = [interval[1], interval[2]]
@@ -91,10 +93,10 @@ def concatenate_files(file_dir,
 			df = df[df[filter_column] > filter_value] # filter based on appropriate measures
 
 		# Remove simulated error induced 21-nov 2019 between 10:50:16 and 10:56:33
-		if faulty_data.__len__() is not 0:
+		if faulty_data.__len__() != 0:
 			if file in faulty_dict:
 				simulated_error_start, simulated_error_end = faulty_dict[file][0], faulty_dict[file][1]
-				df = remove_faulty_data(df, simulated_error_start, simulated_error_end)
+				df = remove_faulty_data(df, simulated_error_start, simulated_error_end, file)
 
 		dfs.append(df) # append dataframe from file to the list of dataframes
 
@@ -112,7 +114,14 @@ def get_startpath(network_location,sensor=None,year=None,month=None,day=None):
 		else: break
 	return startpath
 
-def get_data(root_dir,cols,index_col=None,chunksize=None,filter_operation=False):
+def get_data(
+				root_dir,
+				cols,
+				index_col=None,
+				chunksize=None,
+				filter_operation=False,
+				faulty_data=[]
+			):
 
 	"""Retrieves a concatenated dataframe with all data from the gives root directory."""
 
@@ -129,11 +138,46 @@ def get_data(root_dir,cols,index_col=None,chunksize=None,filter_operation=False)
 									cols=cols,
 									index_col=index_col,
 									chunksize=chunksize,
-									filter_operation=filter_operation)
+									filter_operation=filter_operation,
+									faulty_data=faulty_data
+								)
 
 			dfs.append(df) # Append current dataframe to list of dataframes
 
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
+
+def get_and_store_data(
+						root_dir,
+						cols,
+						index_col=None,
+						chunksize=None,
+						filter_operation=False,
+						file_suffix=None,
+						faulty_data=[]
+					):
+	data = get_data(
+						root_dir=root_dir,
+						cols=cols,
+						index_col=index_col,
+						chunksize=chunksize,
+						filter_operation=filter_operation,
+						faulty_data=faulty_data
+	)
+	if data.empty:
+		return False # ! REMOVE
+		sys.exit(
+				'No data in the selected interval qualifies the filtering ' \
+				'conditions. No object has been pickled to memory.'
+			)
+
+	else:
+		mem.store(data,file_suffix=file_suffix)
+		mem.store_time_interval(
+								data.index[0],
+								data.index[-1],
+								file_suffix=file_suffix
+							)
+	return data
 
 def concatenate_dataframes(dfs,index_col=None):
 	"""Concatenate list of dataframes. If time is not specified as index
@@ -170,7 +214,7 @@ def df_plot(df, values):
 	df.filter(values).plot()
 	plt.show()
 
-def remove_faulty_data(df, start, end):
+def remove_faulty_data(df, start, end, filename):
 	"""Removes faulty data at a known time interval specified through a
 	starting time and ending time. The input time values can either be in a
 	known string format or as datetime.time() objects."""
@@ -179,7 +223,20 @@ def remove_faulty_data(df, start, end):
 		start = to_datetime(start)
 	if(type(end) == str):
 		end = to_datetime(end)
-	return df.between_time(start_time=end,end_time=start,include_start=False,include_end=False) # end time before start time to exclude the interval in-between
+
+	# Remove faulty data from df:
+	# (U)sing end time before start time excludes the interval in-between)
+	df_filtered = df.between_time(
+		start_time=end,
+		end_time=start,
+		include_start=False,
+		include_end=False
+	)
+	n_deleted_rows = df.shape[0] - df_filtered.shape[0]
+	print(
+		f"{n_deleted_rows} rows of faulty data between {start} and {end} " \
+		f"succesfully removed from '{filename}'.")
+	return df_filtered
 
 def get_progress_bar(range_max, bar_desc=None):
 	""""Returns an object representing a progress bar according to the
