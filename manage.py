@@ -9,8 +9,6 @@ from src.modeling import helper_funcs as fnc
 if __name__ == '__main__':
     # Check if the user is connected to network drive containing data
 
-    model, history = mem.load_from_list_of_models()
-
     if sys.platform == 'win32':
         network_dir = filemag.check_access()
     else:
@@ -34,13 +32,17 @@ if __name__ == '__main__':
     #             }
 
     # File management
-    CREATE_DATA_FILE = True # if False, data will be pickle-loaded from file
+    CREATE_DATA_FILE = False # if False, data will be pickle-loaded from file
     FILTER_OPERATION = True  # If True, only in-operation data will be used
-    FILE_SUFFIX = 'complete_data_set'
-    REMOVE_FAULTY_DATA = True
+    FILE_SUFFIX = None
+    REMOVE_FAULTY_DATA = False
 
     # Faulty data that will be removed if REMOVE_FAULTY_DATA is True
-    # Must have three entries (name of file containing error, and starting and ending timestamps of simulated error)
+    # Must have three entries per faulty time interval:
+    #   - name of file containing error
+    #   - starting time of simulated error of specified time format
+    #   - ending time of simulated error of specified time format
+    # Time format: '%Y-%m-%d %H:%M:%S.%f'. Example: 2020-31-01 14:12:58.000'
     FAULTY_DATA = [
         [
             'NogvaEngine_20191121_105000.csv.gz', # filename
@@ -59,12 +61,11 @@ if __name__ == '__main__':
     INDEX_COL = 'time' # index column
     CHUNKSIZE = None # None: the model will train load all data simultaneously
 
-    NORMAL_DIST = False # True if the data is known to have a normal distribution (changes transform function)
-    CREATE_DATA_FILE = False # ! Not implemented functionality for this
-    DO_TRANSFORM=False
-    DO_RESHAPE=False
-    DO_MODELING = True
-    DO_TESTING = True
+    NORMAL_DIST = False # True if data has a normal distribution (affects transform function)
+    DO_TRANSFORM = False
+    DO_RESHAPE = False
+    DO_MODELING = False
+    DO_TESTING = False
     DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
 
     ##########################################################################
@@ -80,21 +81,18 @@ if __name__ == '__main__':
 
     # Get a dataframe containing desired data in desired formats
     if CREATE_DATA_FILE:
-        data = filemag.get_data(
+        data = filemag.get_and_store_data(
                             root_dir=startpath,
                             cols=cols,
                             index_col=INDEX_COL,
                             chunksize=CHUNKSIZE,
-                            filter_operation=FILTER_OPERATION
+                            filter_operation=FILTER_OPERATION,
+                            file_suffix=FILE_SUFFIX,
+                            faulty_data=FAULTY_DATA
                         )
-        if data.empty:
-            print('No data in the selected interval qualifies the filtering conditions. No object has been pickled to memory.')
-        else:
-            mem.store(data,file_suffix=FILE_SUFFIX)
-            mem.store_time_interval(data.index[0], data.index[-1],file_suffix=FILE_SUFFIX)
-
-    if not CREATE_DATA_FILE:
-        data, timeint = mem.load(file_suffix=FILE_SUFFIX), mem.load_time_interval(file_suffix=FILE_SUFFIX)
+    else:
+        data = mem.load(file_suffix=FILE_SUFFIX)
+        timeint =  mem.load_time_interval(file_suffix=FILE_SUFFIX)
         print(f'Data from {timeint[0]} to {timeint[-1]} loaded into memory.')
 
     ##########################################################################
@@ -104,24 +102,9 @@ if __name__ == '__main__':
     if PREDICTION_COLS is None:
         PREDICTION_COLS = data.columns
 
-    # Model parameters
-    TRAINING_PCT=0.8
+    # Data parameters
+    TRAINING_PCT=1.0
     TIMESTEPS=15
-
-    if CREATE_DATA_FILE:
-        NotImplementedError('Under development.')
-
-    if DO_TRANSFORM:
-        [scaler, df_train, df_test] = fnc.transform(data, TRAINING_PCT, normal_dist=NORMAL_DIST)
-        mem.store([scaler, df_train, df_test], FILE_SUFFIX)
-    else:
-        [scaler, df_train, df_test] = mem.load('transformed',FILE_SUFFIX)
-
-    if DO_RESHAPE:
-        [X_train, y_train, X_test, y_test] = fnc.get_reshaped(df_train,df_test,output_cols=PREDICTION_COLS,timesteps=TIMESTEPS)
-    else:
-        [X_train, y_train, X_test, y_test] = mem.load('reshaped',FILE_SUFFIX)
-
 
     # Model parameters
     UNITS = 64
@@ -132,15 +115,72 @@ if __name__ == '__main__':
     EPOCHS = 10
     BATCH_SIZE = 128
 
+    if CREATE_DATA_FILE:
+        NotImplementedError('Under development.')
+
+    if DO_TRANSFORM:
+        [scaler, df_train, df_test] = fnc.transform(
+                                                    data,
+                                                    TRAINING_PCT,
+                                                    normal_dist=NORMAL_DIST
+                                                )
+        mem.store(
+                    [scaler, df_train, df_test],
+                    file_prefix='transformed',
+                    file_suffix=FILE_SUFFIX
+                )
+    else:
+        [scaler, df_train, df_test] = mem.load(
+                                                file_prefix='transformed',
+                                                file_suffix=FILE_SUFFIX
+                                            )
+
+    if DO_RESHAPE:
+        [X_train, y_train, X_test, y_test] = fnc.get_reshaped(
+                                                df_train,
+                                                df_test,
+                                                output_cols=PREDICTION_COLS,
+                                                timesteps=TIMESTEPS
+                                            )
+        mem.store(
+            [X_train, y_train, X_test, y_test],
+            file_prefix='reshaped',
+            file_suffix=FILE_SUFFIX
+        )
+    else:
+        [X_train, y_train, X_test, y_test] = mem.load(
+                                                    file_prefix='reshaped',
+                                                    file_suffix=FILE_SUFFIX
+                                                )
+
     if DO_MODELING:
-        model = sample_model.create(X_train,y_train,UNITS,RETURN_SEQUENCES,SCALE)
-        [model, history] = sample_model.train(model,X_train,y_train,X_test,y_test,EPOCHS,BATCH_SIZE)
+        model = sample_model.create(
+                                    X_train,
+                                    y_train,
+                                    UNITS,
+                                    RETURN_SEQUENCES,
+                                    SCALE
+                                )
+        [model, history] = sample_model.train(
+                                                model,
+                                                X_train,
+                                                y_train,
+                                                X_test,
+                                                y_test,
+                                                EPOCHS,
+                                                BATCH_SIZE
+                                            )
         modelstring = fnc.get_modelstring(ep=EPOCHS,
                                         ts=TIMESTEPS,
                                         un=UNITS,
                                         bs=BATCH_SIZE
                                     )
-        mem.save_model(model,history,file_prefix='model',modelstring=modelstring)
+        mem.save_model(
+                        model,
+                        history,
+                        file_prefix='model',
+                        modelstring=modelstring
+                    )
     else:
         model, history = mem.load_from_list_of_models()
         # model, history = mem.load_model()
@@ -149,13 +189,34 @@ if __name__ == '__main__':
         raise sys.exit('Under development.')
         # performance = sample_model.test_model(model,history)
 
-    faulty_data = mem.load(file_suffix='faulty_data')
-    X_test = None
-    y_test = None
-    pd = None
+    GET_FAULTY_DATA = False
+    FAULTY_SUFFIX = 'faulty_data'
+
+    if GET_FAULTY_DATA:
+        faulty_data = filemag.get_and_store_data(
+                            root_dir=startpath,
+                            cols=cols,
+                            index_col=INDEX_COL,
+                            chunksize=CHUNKSIZE,
+                            filter_operation=FILTER_OPERATION,
+                            file_suffix=FAULTY_SUFFIX
+                        )
+        mem.store(
+            faulty_data,
+            file_suffix=FAULTY_SUFFIX
+        )
+    else:
+        faulty_data = mem.load(file_suffix=FAULTY_SUFFIX)
+    # faulty_data_transformed
+    # X_test = None
+    # y_test = None
+    # pd = None
     y_hat = model.predict(X_test)
+    y_hat = model.predict(y_test)
+    # y_faulty_hat = model.predict(X_faulty) # this is what we want
 
     # train_mae_loss = np.mean(np.abs(y_hat))
+    # rmse = sqrt(mean_squared_error(inv_y, inv_yhat))
 
     # Need to inverse transform data
     y_pred1 = [row[0][0] for row in y_hat]
@@ -163,6 +224,7 @@ if __name__ == '__main__':
     y_real1 = [row[0] for row in y_test]
     y_real2 = [row[1] for row in y_test]
 
+    import pandas as pd
     df = pd.DataFrame()
     df['t1 (pred)'] = y_pred1
     df['t2 (pred)'] = y_pred2
@@ -187,3 +249,9 @@ if __name__ == '__main__':
     ##########################################################################
     ########################### VISUALIZE RESULTS ############################
     ##########################################################################
+
+
+    # Stuff to do
+    # - Make sure that the different functions work for training_pct = 1.0
+    # - Check how to model.predict with faulty data - does it have to be transformed and/or reshaped?
+    # - Add store from temp_file to manage for reshaped data
