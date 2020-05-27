@@ -49,7 +49,6 @@ DO_MODELING = False
 DO_TESTING = False
 DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
 TRAINING_PCT = 0.8
-TIMESTEPS = 15
 
 cols = filemag.get_signal_list(SENSORS, COMPONENTS)
 # Starting path based on desired sensors or time periods
@@ -84,37 +83,37 @@ new_files = {
         2019,
         12,
         None
+    ],
+    5:[
+        'jan_2020',
+        2020,
+        1,
+        None
+    ],
+    6:[
+        'feb_2020',
+        2020,
+        2,
+        None
+    ],
+    7:[
+        'mar_2020',
+        2020,
+        3,
+        None
+    ],
+    8:[
+        'apr_2020',
+        2020,
+        4,
+        None
+    ],
+    9:[
+        'may_2020',
+        2020,
+        5,
+        None
     ]
-    # 5:[
-    #     'jan_2020',
-    #     2020,
-    #     1,
-    #     None
-    # ],
-    # 6:[
-    #     'feb_2020',
-    #     2020,
-    #     2,
-    #     None
-    # ],
-    # 7:[
-    #     'mar_2020',
-    #     2020,
-    #     3,
-    #     None
-    # ],
-    # 8:[
-    #     'apr_2020',
-    #     2020,
-    #     4,
-    #     None
-    # ],
-    # 9:[
-    #     'may_2020',
-    #     2020,
-    #     5,
-    #     None
-    # ]
 }
 
 FILE_SUFFIX = None
@@ -123,47 +122,47 @@ MONTH = 11 # None: all available data in given year will be used
 DAY = None # None: all available data in given month will be used
 
 tss = [5, 10, 15, 20, 25, 30]
+# tss = [45, 60, 90, 120]
 
-for ts in tss:
-    for i in range(5):
-        if ts == 5 and i < 4:
+for i in range(len(new_files)):
+    FILE_SUFFIX = new_files[i][0]
+    print('File: ',FILE_SUFFIX)
+    YEAR = new_files[i][1]
+    MONTH = new_files[i][2]
+    DAY = new_files[i][3]
+    startpath = filemag.get_startpath('Z:', SENSORS, YEAR, MONTH, DAY)
+    # data = filemag.get_and_store_data(
+    #                     root_dir=startpath,
+    #                     cols=cols,
+    #                     index_col=INDEX_COL,
+    #                     chunksize=CHUNKSIZE,
+    #                     filter_operation=FILTER_OPERATION,
+    #                     file_suffix=FILE_SUFFIX,
+    #                     faulty_data=FAULTY_DATA
+    #                 )
+    data = mem.load(file_suffix=FILE_SUFFIX)
+
+    if type(data) == bool:
+        if data == False:
             continue
-        FILE_SUFFIX = new_files[i][0]
-        print('File: ',FILE_SUFFIX, 'timesteps: ',ts)
-        YEAR = new_files[i][1]
-        MONTH = new_files[i][2]
-        DAY = new_files[i][3]
-        startpath = filemag.get_startpath('Z:', SENSORS, YEAR, MONTH, DAY)
-        data = filemag.get_and_store_data(
-                            root_dir=startpath,
-                            cols=cols,
-                            index_col=INDEX_COL,
-                            chunksize=CHUNKSIZE,
-                            filter_operation=FILTER_OPERATION,
-                            file_suffix=FILE_SUFFIX,
-                            faulty_data=FAULTY_DATA
-                        )
 
-        if type(data) == bool:
-            if data == False:
-                continue
-
-        [scaler, df_train, df_test] = fnc.transform(
-                                                        data,
-                                                        TRAINING_PCT,
-                                                        normal_dist=NORMAL_DIST
-                                                    )
-        mem.store(
-                    [scaler, df_train, df_test],
-                    file_prefix='transformed',
-                    file_suffix=FILE_SUFFIX
-                )
-
+    [scaler, df_train, df_test] = fnc.transform(
+                                                    data,
+                                                    TRAINING_PCT,
+                                                    normal_dist=NORMAL_DIST
+                                                )
+    mem.store(
+                [scaler, df_train, df_test],
+                file_prefix='transformed',
+                file_suffix=FILE_SUFFIX
+            )
+    for ts in tss:
+        print('Reshaping data with timesteps: ',ts)
         [X_train, y_train, X_test, y_test] = fnc.reshape(
                                                     df_train,
                                                     df_test,
                                                     output_cols=PREDICTION_COLS,
-                                                    timesteps=TIMESTEPS,
+                                                    timesteps=ts,
                                                     verbose=True
                                                 )
         mem.store(
