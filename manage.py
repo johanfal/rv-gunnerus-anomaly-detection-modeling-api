@@ -64,8 +64,8 @@ if __name__ == '__main__':
     NORMAL_DIST = False # True if data has a normal distribution (affects transform function)
     DO_TRANSFORM = False
     DO_RESHAPE = False
-    DO_MODELING = True
-    DO_TESTING = True
+    DO_MODELING = False
+    DO_TESTING = False
     DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
 
     ##########################################################################
@@ -92,8 +92,10 @@ if __name__ == '__main__':
     else:
         data = mem.load(file_suffix=FILE_SUFFIX)
         if data.index.dtype == 'datetime64[ns]':
-            timeint = [data.index[0], data.index[-1]]
-            print(f'Data from {timeint[0]} to {timeint[-1]} loaded into memory.')
+            tperiod = [data.index[0], data.index[-1]]
+            print(
+                f'Data from {tperiod[0]} to {tperiod[-1]} loaded into memory.'
+            )
 
     ##########################################################################
     ###########################   CREATING MODEL  ############################
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     # Model parameters
     UNITS = 64
     RETURN_SEQUENCES = True
-    SCALE = 0.2
+    DROPOUT_RATE = 0.2
 
     # Training parameters
     EPOCHS = 3
@@ -162,9 +164,9 @@ if __name__ == '__main__':
         model = sample_model.create(
                                     X_train,
                                     y_train,
-                                    UNITS,
-                                    RETURN_SEQUENCES,
-                                    SCALE
+                                    UNITS=UNITS,
+                                    RETURN_SEQUENCES=RETURN_SEQUENCES,
+                                    DROPOUT_RATE=DROPOUT_RATE
                                 )
 
         [model, history] = sample_model.train(
@@ -173,8 +175,8 @@ if __name__ == '__main__':
                                                 y_train,
                                                 X_test,
                                                 y_test,
-                                                EPOCHS,
-                                                BATCH_SIZE
+                                                EPOCHS=EPOCHS,
+                                                BATCH_SIZE=BATCH_SIZE
                                             )
 
         modelstring = fnc.get_modelstring(
@@ -218,6 +220,7 @@ if __name__ == '__main__':
     # X_test = None
     # y_test = None
     # pd = None
+    X_faulty = faulty_data.reshape((faulty_data.shape[0], TIMESTEPS, faulty_data.shape[1]))
     y_hat = model.predict(X_test)
     y_hat = model.predict(y_test)
     # y_faulty_hat = model.predict(X_faulty) # this is what we want
