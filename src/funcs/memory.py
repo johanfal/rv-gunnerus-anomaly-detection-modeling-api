@@ -1,6 +1,7 @@
 import pickle
 import sys, os
 from datetime import datetime
+from tensorflow.keras.models import model_from_json
 
 def store(
             obj,
@@ -32,7 +33,7 @@ def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None):
         f.close()
         print(f"Object succesfully loaded from '{filename}' in '{load_dir}'")
         return obj
-    except FileNotFoundError:
+    except:
         sys.exit(f"{filename}.pckl not found in '{load_dir}'.")
 
 def delete(delete_dir='src/datastore/',file_prefix=None, file_suffix=None):
@@ -114,27 +115,30 @@ def load_from_list_of_models(model_dir='src/datastore/models/'):
 
     model_dir = _check_dir_string(model_dir)
     models = os.listdir(model_dir)
-    file_select = {}
-    print(f"\n\nModels in '{model_dir}':'")
-    for n in range(1, models.__len__() + 1):
-        model = os.path.splitext(models[n-1])[0] # current model without ext
-        file_select[n] = model
-        print(f"{n}: {model}")
+    if models.__len() > 1:
+        file_select = {}
+        print(f"\n\nModels in '{model_dir}':'")
+        for n in range(1, models.__len__() + 1):
+            # Get current model without file extension:
+            model = os.path.splitext(models[n-1])[0]
+            file_select[n] = model
+            print(f"{n}: {model}")
 
-    print('-'*max(models).__len__())
-    selector = input('Choose model number to load: ')
-    try:
-        selector = int(selector)
-    except:
-        sys.exit(
+        print('-'*max(models).__len__())
+        selector = input('Choose model number to load: ')
+        try:
+            selector = int(selector)
+        except:
+            sys.exit(
                 'Invalid input type, the program has been terminated.\n'\
                 'Please select a digit corresponding with desired model file.'
             )
-    if int(selector) not in file_select:
-        sys.exit('Invalid model number. The program has been terminated.')
+        if int(selector) not in file_select:
+            sys.exit('Invalid model number. The program has been terminated.')
 
     filename = file_select[selector]
     model, history = load(load_dir=model_dir,file_prefix=filename)
+    model = model_from_json(model) # convert json-string to keras model
     return model, history
 
 def _check_dir_string(dir_string):
