@@ -18,7 +18,7 @@ def reshape(df_train, df_test,output_cols=None,timesteps=1,verbose=True):
         print(f"Reshaped testing data dimensionsality: X_test: {X_test.shape} | y_test: {y_test.shape}.")
     return  [X_train, y_train, X_test, y_test]
 
-def transform(data,training_pct=0.8,normal_dist=False):
+def transform(data,training_pct=0.8,scaler_type='minmax'):
     """Transforms a given set of data to normalized sets of training and
     testing data. The transformed values are returned as two dataframes,
     representing the training data and testing data, respectively."""
@@ -29,11 +29,7 @@ def transform(data,training_pct=0.8,normal_dist=False):
     df_train, df_test = data.iloc[:train_size], data.iloc[train_size:]
 
     # Scaler
-    if normal_dist:
-        scaler = StandardScaler() # normalize about a zero-mean with unit variance
-    else:
-        scaler = MinMaxScaler(feature_range=(0,1)) # normalize values between 0 and 1
-
+    scaler = get_scaler(scaler_type)
     scaler = scaler.fit(df_train[df_train.columns])
 
     arr_train = scaler.transform(df_train) # transformed training array
@@ -45,6 +41,62 @@ def transform(data,training_pct=0.8,normal_dist=False):
 
     return scaler, df_train, df_test
 
+def get_scaler(scaler_type='minmax'):
+    """Normalize data based on a desired scaler. Default supported scalers are
+    MinMaxScaler() and StandardScaler(). StandardScaler() is used if the data
+    is known to have a normal distribution, while the MinMaxScaler() can be
+    used otherwise. It is possible to implement other scalers if it is deemed
+    necessary. If so, remember to import the appropriate scalers from
+    sklearn.preprocessing, and add them as an option in the if statements
+    below. Read the documentation on scikit's preprocessing page to learn more
+    about possible scalers and their properties/use-cases."""
+
+    if scaler_type == 'minmax':
+        # Default scaler, which can suffer from the presence of large outliers
+        feature_range = (0,1)
+        return MinMaxScaler(feature_range=feature_range)
+    if scaler_type == 'standard':
+        # Data is known to have a normal distribution
+        return StandardScaler() # normalize about a zero-mean with unit variance
+
+    if scaler_type == 'your_scaler_type_goes_here':
+        return None # change to fit with your desired scaler
+
+def get_df_pred(df,y_hat,timesteps,prediction_cols=None):
+    """Description."""
+    if prediction_cols == None:
+        prediction_cols = df.columns
+
+    df_hat = df[timesteps:].drop(prediction_cols, axis=1)
+
+    pred_col_counter = 0
+    for pred_col in prediction_cols:
+        current_values = [row[pred_col_counter] for row in y_hat]
+        for i in range(df.columns.__len__()):
+            if pred_col == df.columns[i]:
+                df_hat.insert(loc=i,column=pred_col,value=current_values)
+                continue
+        pred_col_counter += 1
+
+    for i in range(prediction_cols.__len__()):
+        try:
+            df_hat[prediction_cols[i]] = [row[i] for row in y_hat]
+        except:
+            sys.exit(
+                "Mismatch between y_hat and prediction columns.\n" \
+                f"Index {i} corresponding with prediction columns " \
+                f"{prediction_cols[i]} is out of range for y_hat."
+            )
+    return df_hat
+
+def inverse_transform_dataframe(df,scaler):
+    """Description."""
+    itf_arr = scaler.inverse_transform(df)
+    itf_df = pd.DataFrame()
+    for i in range(df.columns.__len__()):
+        itf_df[df.columns[i]] = [row[i] for row in itf_arr]
+
+    return itf_df
 
 def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
     """Reshapes a given dataframe to a 3D tensor based on the columns in the

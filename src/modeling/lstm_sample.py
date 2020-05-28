@@ -17,21 +17,20 @@ def create(X_train,y_train,verbose=True,**parameters):
     # Create variables based on the desired keyword arguments used to build
     # the model. These must be changed in accordance with the **parameters.
     UNITS = parameters['UNITS']
-    RETURN_SEQUENCES = parameters['RETURN_SEQUENCES']
-    DROPOUT_RATE = parameters['DROPOUT_RATE']
     OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
 
     model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
-    model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
-    model.add(keras.layers.Dense(2, input_dim = X_train.shape[1]))
-    model.add(keras.layers.RepeatVector(n=1)) # This was the last thing you changed, and it seemed to be working..
-    # ! Is it possible to replace the hard-coded value of 1 with the shape of y_train, somehow?
-    model.add(keras.layers.LSTM(UNITS, return_sequences=True))
-    model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
-    # model.add(keras.layers.Dense(2))
-    model.add(keras.layers.TimeDistributed(
-    keras.layers.Dense(2)) # change this to use the shape of y_train
-    )
+    model.add(keras.layers.Dense(2))
+    # model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
+    # model.add(keras.layers.Dense(2, input_dim = X_train.shape[1]))
+    # model.add(keras.layers.RepeatVector(n=1)) # This was the last thing you changed, and it seemed to be working..
+    # # ! Is it possible to replace the hard-coded value of 1 with the shape of y_train, somehow?
+    # model.add(keras.layers.LSTM(UNITS, return_sequences=True))
+    # model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
+    # # model.add(keras.layers.Dense(2))
+    # model.add(keras.layers.TimeDistributed(
+    # keras.layers.Dense(2)) # change this to use the shape of y_train
+    # )
 
     model.compile(loss='mae', optimizer=OPTIMIZER)
     if verbose:
@@ -54,7 +53,7 @@ def train(model,X_train,y_train,X_test,y_test,**parameters):
                     verbose=1,
                     shuffle=False
                 )
-    return model, history
+    return model, history.history
 
 def test_model(model,history):
     """Description."""
