@@ -2,6 +2,7 @@ import pickle
 import sys, os
 from datetime import datetime
 from tensorflow.keras.models import model_from_json
+from tensorflow.keras.models import load_model
 
 def store(
             obj,
@@ -21,7 +22,7 @@ def store(
     print(f"Object succesfully stored as '{filename}.pckl' in '{store_dir}'")
     return
 
-def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None):
+def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None, verbose=False):
     """Description."""
     if file_prefix is None: file_prefix = 'store'
     load_dir = _check_dir_string(load_dir)
@@ -31,7 +32,8 @@ def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None):
         f = open(f'{load_dir}{filename}.pckl', 'rb')
         obj = pickle.load(f)
         f.close()
-        print(f"Object succesfully loaded from '{filename}' in '{load_dir}'")
+        if verbose:
+            print(f"Object succesfully loaded from '{filename}' in '{load_dir}'")
         return obj
     except:
         sys.exit(f"{filename}.pckl not found in '{load_dir}'.")
@@ -60,67 +62,40 @@ def save_model(
             ):
     """Saves a Keras model to a file named after important properties and
     tuning parameters of the model. Each saved file receives a unique name
-    based on the time of save. Thus, no models are overwritten.
-    Suggested elements in kwargs:
-        rms or loss of some sort
-        units
-        epochs
-        datasize (reshaped, including features)
-        number of outputs
-        timesteps
-    """
+    based on the time of save. Thus, no existing models are overwritten."""
 
     if file_prefix is None: file_prefix = 'model'
     json_model = model.to_json()
     model_dir = _check_dir_string(model_dir)
     unique_time = datetime.now().strftime('%Y%m%d-%H%M')
-    filename = f"{model_dir}{file_prefix}_{unique_time}_{modelstring}"
-    f = open(f"{filename}.pckl", 'wb')
-    pickle.dump([json_model, history.history], f)
+    tag = f"{unique_time}_{modelstring}"
+    model_filename = f"{file_prefix}_{tag}"
+    history_filename = f"{file_prefix}_{unique_time}_{modelstring}"
+    path = f"{model_dir}{file_prefix}_{tag}"
+    model.save(f"{path}.h5")
+    f = open(f"{model_dir}{file_prefix}_history_{tag}.pckl",'wb')
+    pickle.dump(history, f)
     f.close()
+    print(f"Model and history with tag '{tag}' succesfully stored in " \
+            f"'{model_dir}'.")
     return
-
-def load_model(
-                file_prefix=None,
-                model_dir='src/datastore/models/',
-                file_suffix=None
-            ):
-    """Load a model and history from a local directory, specified through
-    a model directory, filename prefix and filename suffix. The suffix will
-    usually contain information about the model parameters, while the prefix
-    defaults to 'model' if input value is None.
-    """
-
-    if file_prefix is None: file_prefix = 'model'
-    model_dir = _check_dir_string(model_dir)
-    filename = f"{model_dir}"
-    try:
-        model, history = load(
-                                load_dir=model_dir,
-                                file_prefix=file_prefix,
-                                file_suffix=file_suffix
-                            )
-
-        return model, history
-
-    except:
-        sys.exit(
-            f"Not able to load model from '{filename}' in '{model_dir}'.\n"\
-            "Please verify that the file exists and is stored as a "\
-            "list containing a 'model' and 'history' object."
-        )
 
 def load_from_list_of_models(model_dir='src/datastore/models/'):
     """Description."""
 
     model_dir = _check_dir_string(model_dir)
     models = os.listdir(model_dir)
-    if models.__len() > 1:
+    if models.__len__() > 2:
+        histories = {}
         file_select = {}
         print(f"\n\nModels in '{model_dir}':'")
         for n in range(1, models.__len__() + 1):
             # Get current model without file extension:
             model = os.path.splitext(models[n-1])[0]
+            if 'history' in model:
+                name_split = model.split('_history_',1)
+                histories['_'.join(name_split)] = model
+                continue
             file_select[n] = model
             print(f"{n}: {model}")
 
@@ -135,10 +110,25 @@ def load_from_list_of_models(model_dir='src/datastore/models/'):
             )
         if int(selector) not in file_select:
             sys.exit('Invalid model number. The program has been terminated.')
+        model_file = file_select[selector]
+        history_file = histories[model_file]
+    else:
+        for model in models:
+            model = os.path.splitext(model)[0]
+            if 'history' in model:
+                history_file = model
+                name_split = model.split('_history_',1)
+            else:
+                model_file = model
 
-    filename = file_select[selector]
-    model, history = load(load_dir=model_dir,file_prefix=filename)
-    model = model_from_json(model) # convert json-string to keras model
+    model = load_model(f"{model_dir}{model_file}.h5")
+    history = load(
+        load_dir=model_dir,
+        file_prefix=history_file,
+        verbose=False
+    )
+    print(f"Model and history with tag '{name_split[1]}' succesfully " \
+        f"loaded from '{model_dir}'.")
     return model, history
 
 def _check_dir_string(dir_string):
