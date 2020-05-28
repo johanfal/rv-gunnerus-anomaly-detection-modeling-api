@@ -6,3 +6,4 @@ __pycache__
 .gitignore
 !test.pickl
 src/datastore/old
+*.h5
