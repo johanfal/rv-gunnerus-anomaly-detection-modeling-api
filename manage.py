@@ -1,10 +1,16 @@
 import sys
 
-# Custom module imports
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.metrics import mean_squared_error
+
+
 from src.funcs import file_management as filemag
 from src.funcs import memory as mem
-from src.modeling import lstm_sample as sample_model
 from src.modeling import helper_funcs as fnc
+from src.modeling import lstm_sample as sample_model
 
 if __name__ == '__main__':
     # Check if the user is connected to network drive containing data
@@ -106,7 +112,8 @@ if __name__ == '__main__':
 
     # Data parameters
     TRAINING_PCT=1.0
-    TIMESTEPS=5
+    TIMESTEPS=15
+    SCALER_TYPE = 'minmax'
 
     # Model parameters
     UNITS = 64
@@ -124,7 +131,7 @@ if __name__ == '__main__':
         [scaler, df_train, df_test] = fnc.transform(
                                                     data,
                                                     TRAINING_PCT,
-                                                    normal_dist=NORMAL_DIST
+                                                    scaler_type=SCALER_TYPE
                                                 )
         mem.store(
                     [scaler, df_train, df_test],
@@ -155,6 +162,7 @@ if __name__ == '__main__':
         if TIMESTEPS in [5,10,15,20,25,30]:
             LOAD_TS = f'_ts-{str(TIMESTEPS).zfill(2)}'
         RESHAPED_SUFFIX = FILE_SUFFIX + LOAD_TS
+        # ! REMOVE above
         [X_train, y_train, X_test, y_test] = mem.load(
                                                     file_prefix='reshaped',
                                                     file_suffix=RESHAPED_SUFFIX
@@ -164,9 +172,7 @@ if __name__ == '__main__':
         model = sample_model.create(
                                     X_train,
                                     y_train,
-                                    UNITS=UNITS,
-                                    RETURN_SEQUENCES=RETURN_SEQUENCES,
-                                    DROPOUT_RATE=DROPOUT_RATE
+                                    UNITS=UNITS
                                 )
 
         [model, history] = sample_model.train(
@@ -220,37 +226,79 @@ if __name__ == '__main__':
     # X_test = None
     # y_test = None
     # pd = None
-    X_faulty = faulty_data.reshape((faulty_data.shape[0], TIMESTEPS, faulty_data.shape[1]))
-    y_hat = model.predict(X_test)
-    y_hat = model.predict(y_test)
+    # faulty_arr = np.array(faulty_data)
+    # faulty_arr = faulty_arr.reshape(faulty_arr.shape[0], 1, faulty_arr.shape[1])
+    # y_hat = model.predict(faulty_arr)
+
+    # y_hat = model.predict(X_test)
     # y_faulty_hat = model.predict(X_faulty) # this is what we want
 
-    # train_mae_loss = np.mean(np.abs(y_hat))
-    # rmse = sqrt(mean_squared_error(inv_y, inv_yhat))
+
 
     # Need to inverse transform data
-    y_pred1 = [row[0][0] for row in y_hat]
-    y_pred2 = [row[0][1] for row in y_hat]
-    y_real1 = [row[0] for row in y_test]
-    y_real2 = [row[1] for row in y_test]
+    y_hat = model.predict(X_test)
+    if False: # old, transformed visualization
+        y_pred1 = [row[0] for row in y_hat]
+        y_pred2 = [row[1] for row in y_hat]
+        y_real1 = [row[0] for row in y_test]
+        y_real2 = [row[1] for row in y_test]
+        df = pd.DataFrame()
+        df['t1 (pred)'] = y_pred1
+        df['t2 (pred)'] = y_pred2
+        df['t1 (real)'] = y_real1
+        df['t2 (real)'] = y_real2
+        dft1 = df.filter(['t1 (pred)', 't1 (real)'])
+        dft2 = df.filter(['t2 (pred)', 't2 (real)'])
+        plt.plot(history['loss'], label = 'train')
+        plt.plot(history['val_loss'], label = 'test')
+        plt.legend()
+        dft1.plot()
+        plt.show()
+        dft2.plot()
+        plt.show()
 
-    import pandas as pd
-    df = pd.DataFrame()
-    df['t1 (pred)'] = y_pred1
-    df['t2 (pred)'] = y_pred2
-    df['t1 (real)'] = y_real1
-    df['t2 (real)'] = y_real2
+    # Remove columns of predicted values and drop the first timestep
+    df_hat = fnc.get_df_pred(
+                                df_test,
+                                y_hat,
+                                TIMESTEPS,
+                                prediction_cols=PREDICTION_COLS
+                            )
+    df_hat_inv = fnc.inverse_transform_dataframe(df_hat, scaler)
+    df_test_inv = fnc.inverse_transform_dataframe(df_test, scaler)
 
-    dft1 = df.filter(['t1 (pred)', 't1 (real)'])
-    dft2 = df.filter(['t2 (pred)', 't2 (real)'])
+    df_hat_filtered = df_hat_inv.filter(PREDICTION_COLS)
+    df_test_filtered = df_test_inv[TIMESTEPS:].filter(PREDICTION_COLS)
 
-    import matplotlib.pyplot as plt
-    plt.plot(history.history['loss'], label = 'train')
-    plt.plot(history.history['val_loss'], label = 'test')
+    rmse_ind = []
+    mae_ind = []
+    for col in df_hat_filtered:
+        rmse_ind.append(np.sqrt(
+                mean_squared_error(df_hat_filtered[col],df_test_filtered[col])
+            ))
+        mae_ind.append(np.mean(np.abs(df_hat_filtered[col].values()-df_test_filtered[col].values()), axis=1))
+    rmse_tot = np.sqrt(mean_squared_error(df_hat_filtered,df_test_filtered))
+    mae_tot = np.mean(np.abs(df_hat_filtered-df_test_filtered))
+
+    df_hat_arr = np.array(df_hat_filtered)
+    df_test_arr = np.array(df_test_filtered)
+    hat_rs = df_hat_arr.reshape(df_hat_arr.shape[0], 1, df_hat_arr.shape[1])
+    test_rs = df_test_arr.reshape(df_test_arr.shape[0], 1, df_test_arr.shape[1])
+
+    train_mae_loss = np.mean(np.abs(hat_rs-test_rs), axis=1)
+    sns.distplot(train_mae_loss, bins=100, kde=True)
+
+    plt.plot(history['loss'], label = 'train')
+    plt.plot(history['val_loss'], label = 'test')
     plt.legend()
-    dft1.plot()
     plt.show()
-    dft2.plot()
+    ax = df_hat_filtered['ME1_ExhaustTemp1'].plot()
+    df_test_filtered['ME1_ExhaustTemp1'].plot(ax=ax)
+    plt.legend()
+    plt.show()
+    ax = df_hat_filtered['ME1_ExhaustTemp2'].plot()
+    df_test_filtered['ME1_ExhaustTemp2'].plot(ax=ax)
+    plt.legend()
     plt.show()
 
     # model.predict(...)
