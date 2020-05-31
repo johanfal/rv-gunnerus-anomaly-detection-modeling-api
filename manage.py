@@ -34,6 +34,7 @@ CREATE_DATA_FILE = False # if False, data will be pickle-loaded from file
 FILTER_OPERATION = True  # If True, only in-operation data will be used
 FILE_SUFFIX = 'nov_2019'
 REMOVE_FAULTY_DATA = False
+DELETE_STORED_FILES = None  # ! Not implemented functionality for this
 
 # Faulty data that will be removed if REMOVE_FAULTY_DATA is True
 # Must have three entries per faulty time interval:
@@ -59,15 +60,14 @@ TRAINING_PERIOD =[
 
 # Reading and filtering of data
 INDEX_COL = 'time' # index column
-CHUNKSIZE = None # None: the model will train load all data simultaneously
+CHUNKSIZE = None # None: the model will load all data simultaneously
 
 NORMAL_DIST = False # True if data has a normal distribution (affects transform function)
 DO_TRANSFORM = False
 DO_RESHAPE = False
 DO_MODELING = False
 DO_TESTING = False
-DO_FAULT_TESTING = True
-DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
+GET_FAULTY = True
 
 ##########################################################################
 ###########################  RETRIEVING DATA   ###########################
@@ -109,16 +109,13 @@ if CREATE_DATA_FILE:
                         file_suffix=FILE_SUFFIX,
                         faulty_data=FAULTY_DATA
                     )
-else:
+else: # load stored data file
     data = mem.load(file_suffix=FILE_SUFFIX)
     if data.index.dtype == 'datetime64[ns]':
         tperiod = [data.index[0], data.index[-1]]
         print(
             f'Data from {tperiod[0]} to {tperiod[-1]} loaded into memory.'
         )
-
-if PREDICTION_COLS is None:
-    PREDICTION_COLS = data.columns
 
 if DO_TRANSFORM:
     [scaler, df_train, df_test] = fnc.transform(
@@ -131,26 +128,26 @@ if DO_TRANSFORM:
                 file_prefix='transformed',
                 file_suffix=FILE_SUFFIX
             )
-else:
+else: # load stored, transformed data
     [scaler, df_train, df_test] = mem.load(
                                             file_prefix='transformed',
                                             file_suffix=FILE_SUFFIX
                                         )
 
 if DO_RESHAPE:
-    [X_train, y_train, X_test, y_test] = fnc.get_reshaped(
+    [X_train, y_train, X_test, y_test] = fnc.reshape(
                                             df_train,
                                             df_test,
                                             output_cols=PREDICTION_COLS,
                                             timesteps=TIMESTEPS
                                         )
     mem.store(
-        [X_train, y_train, X_test, y_test],
-        file_prefix='reshaped',
-        file_suffix=FILE_SUFFIX
-    )
-else:
-    # ! REMOVE this, it is temporary to work with specific file names
+                [X_train, y_train, X_test, y_test],
+                file_prefix='reshaped',
+                file_suffix=FILE_SUFFIX
+            )
+else: # laod stored, reshaped data
+    # ! REMOVE this, it is temporary to work with specific filenames
     LOAD_TS = ''
     if TIMESTEPS in [5,10,15,20,25,30]:
         LOAD_TS = f'_ts-{str(TIMESTEPS).zfill(2)}'
@@ -196,50 +193,40 @@ else:
                         file_prefix='model',
                         modelstring=modelstring
                     )
-
-    else:
+    else: # load stored model
         model, history = mem.load_from_list_of_models()
 
 if DO_TESTING:
     raise sys.exit('Under development.')
     # performance = sample_model.test_model(model,history)
 
-
-if DO_FAULT_TESTING:
-    FAULTY_SUFFIX = 'faulty_data'
+if GET_FAULTY:
+    F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
         True, # Create faulty data file
         True, # Tranform data
         True, # Reshape data
     ]
-    FAULTY_INTERVAL =[
+    F_INTERVAL =[
         2019, # year (None: all available data will be used)
         11, # month (None: all available data in given year will be used)
         None # day (None: all available data in given month will be used)
     ]
 
-    X_faulty = fnc.get_faulty_reshaped(
-                                    faulty_suffix=FAULTY_SUFFIX,
-                                    action_parameters=ACTION_PARAMETERS,
-                                    faulty_interval=FAULTY_INTERVAL,
+    f_startpath = filemag.get_startpath(network_dir,SENSORS,F_INTERVAL)
 
-    )
-
-
-    faulty_data = filemag.get_and_store_data(
-                        root_dir=startpath,
-                        cols=cols,
-                        index_col=INDEX_COL,
-                        chunksize=CHUNKSIZE,
-                        filter_operation=FILTER_OPERATION,
-                        file_suffix=FAULTY_SUFFIX
-                    )
-    mem.store(faulty_data,file_suffix=FAULTY_SUFFIX)
-else:
-    faulty_data = mem.load(file_suffix=FAULTY_SUFFIX)
-
-
-
+    [X_faulty,y_faulty] = fnc.get_faulty_reshaped(
+                                        root_dir=f_startpath,
+                                        cols=cols,
+                                        timesteps=TIMESTEPS,
+                                        index_col=INDEX_COL,
+                                        chunksize=CHUNKSIZE,
+                                        filter_operation=FILTER_OPERATION,
+                                        faulty_suffix=F_SUFFIX,
+                                        action_parameters=ACTION_PARAMETERS,
+                                        scaler_type=SCALER_TYPE,
+                                        output_cols=PREDICTION_COLS
+                                    )
 
 # Need to inverse transform data
 y_hat = model.predict(X_test)
@@ -250,7 +237,7 @@ df_hat = fnc.get_df_pred(
                             y_hat,
                             TIMESTEPS,
                             prediction_cols=PREDICTION_COLS
-                        )
+                    )
 df_hat_inv = fnc.inverse_transform_dataframe(df_hat, scaler)
 df_test_inv = fnc.inverse_transform_dataframe(df_test, scaler)
 

@@ -3,20 +3,36 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from src.funcs.file_management import get_progress_bar
+from src.funcs import file_management as filemag
 from src.funcs import memory as mem
 
-def reshape(df_train, df_test,output_cols=None,timesteps=1,verbose=True):
+
+def reshape(df_train, df_test=None,output_cols=None,timesteps=1,verbose=True):
     """Description."""
 
+    if verbose: print(f"Training data dimensionsality: {df_train.shape}")
+    X_train, y_train = _reshape_data(
+                                        df_train,
+                                        timesteps,
+                                        output_cols=output_cols,
+                                        bar_desc='Reshaping training data..'
+                                    )
     if verbose:
-        print(f"Training data dimensionsality: {df_train.shape}")
-        X_train, y_train = _reshape_data(df_train,timesteps,output_cols=output_cols,bar_desc='Reshaping training data..')
-        print(f"Reshaped training data dimensionsality: X_train: {X_train.shape} | y_train: {y_train.shape}.")
-        print(f"Test data dimensionality: {df_test.shape}")
-        X_test, y_test = _reshape_data(df_test,timesteps,output_cols=output_cols,bar_desc='Reshaping test data..')
-        print(f"Reshaped testing data dimensionsality: X_test: {X_test.shape} | y_test: {y_test.shape}.")
-    return  [X_train, y_train, X_test, y_test]
+        print("Reshaped training data dimensionsality: X_train: "\
+                f"{X_train.shape} | y_train: {y_train.shape}.")
+    if df_test is not None:
+        if verbose:
+            print(f"Test data dimensionality: {df_test.shape}")
+        X_test, y_test = _reshape_data(
+                                        df_test,
+                                        timesteps,
+                                        output_cols=output_cols,
+                                        bar_desc='Reshaping test data..'
+                                    )
+        if verbose: print("Reshaped testing data dimensionsality: X_test: "\
+                            f"{X_test.shape} | y_test: {y_test.shape}.")
+        return  [X_train, y_train, X_test, y_test]
+    else: return X_train, y_train
 
 def transform(data,training_pct=0.8,scaler_type='minmax'):
     """Transforms a given set of data to normalized sets of training and
@@ -36,8 +52,16 @@ def transform(data,training_pct=0.8,scaler_type='minmax'):
     arr_test = scaler.transform(df_test) # transformed testing array
 
     # Add transformed arrays to dataframe
-    df_train = pd.DataFrame(arr_train, columns=df_train.columns, index=df_train.index)
-    df_test = pd.DataFrame(arr_test, columns=df_test.columns, index=df_test.index)
+    df_train = pd.DataFrame(
+                            arr_train,
+                            columns=df_train.columns,
+                            index=df_train.index
+                        )
+    df_test = pd.DataFrame(
+                            arr_test,
+                            columns=df_test.columns,
+                            index=df_test.index
+                        )
 
     return scaler, df_train, df_test
 
@@ -107,7 +131,7 @@ def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
     Xs, ys = [], [] # empty placeholders
     range_max = df.shape[0] - timesteps # iteration range
 
-    bar = get_progress_bar(range_max, bar_desc).start() # progress bar
+    bar = filemag.get_progress_bar(range_max, bar_desc).start() # progress bar
 
     df_x = df
 
@@ -120,17 +144,20 @@ def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
 
     for i in range(range_max):
         bar.update(i+1)
-        Xs.append(df_x.iloc[i:(i + timesteps)].values) # add timesteps t-N to t-1 (i:(i+timesteps))
-        ys.append(df_y.iloc[i + timesteps].values) # add timestep t (i+timesteps)
+
+        Xs.append(
+                df_x.iloc[i:(i + timesteps)].values # add timesteps t-N to t-1
+            )
+        ys.append(
+                    df_y.iloc[i + timesteps].values # add timestep t
+            )
     bar.finish()
     return np.array(Xs), np.array(ys)
-
 
 def compare_models(models):
     """Idea of the function is to be able to view the different parameters
     and performance in e.g. a table. Could this be done in the web app?"""
     return
-
 
 def get_modelstring(prefix='model',**kwargs):
     """Create desired filename for storing models. Use **kwargs to specify
@@ -146,12 +173,10 @@ def get_modelstring(prefix='model',**kwargs):
     return modelstring
     # return f"ts-{str(timesteps).zfill(3)}_ep-{str(EPOCHS).zfill(2)}_un-{str(UNITS).zfill(2)}_bs-{str(BATCH_SIZE).zfill(2)}"
 
-
 def get_anomaly_range(df_loss,threshold,neighbors=0):
     """Description"""
     df_bool = df_loss > threshold
     return _check_neighboring_bools(df_bool,neighbors=neighbors)
-
 
 def _check_neighboring_bools(df_bool,neighbors=0):
     """Checks if the neighborhood on each side of a boolean True value is also
@@ -167,6 +192,70 @@ def _check_neighboring_bools(df_bool,neighbors=0):
         df_neighborhood[f'+{i}'] = df_bool.shift(i,fill_value=False).values
     return df_neighborhood.all(axis='columns').values
 
+def get_faulty_reshaped(
+                        root_dir,
+                        cols,
+                        timesteps,
+                        index_col=None,
+                        chunksize=None,
+                        filter_operation=True,
+                        faulty_suffix='faulty',
+                        action_parameters=[True]*3,
+                        scaler_type='minmax',
+                        output_cols=None,
+                    ):
+    """Description."""
+
+    [create_data_file, do_transform, do_reshape] = action_parameters
+
+    if create_data_file:
+        faulty_data = filemag.get_and_store_data(
+                                            root_dir=root_dir,
+                                            cols=cols,
+                                            index_cols=index_col,
+                                            chunksize=chunksize,
+                                            filter_operation=filter_operation,
+                                            file_suffix=faulty_suffix,
+                                            faulty_data=[]
+                                        )
+        mem.store(faulty_data,file_suffix=faulty_suffix)
+    else:
+        faulty_data = mem.load(file_suffix=faulty_suffix)
+
+    if do_transform:
+        [scaler, df_faulty,] = transform(
+                                                    faulty_data,
+                                                    training_pct=1.0,
+                                                    scaler_type=scaler_type
+                                            )
+        mem.store(
+                    [scaler,df_faulty],
+                    file_prefix='transformed',
+                    file_suffix=faulty_suffix
+                )
+    else:
+        [scaler,df_faulty] = mem.load(
+                                        file_prefix='transformed',
+                                        file_suffix=faulty_suffix
+                                    )
+
+    if do_reshape:
+        [X_faulty,y_faulty] = reshape(
+                                        df_faulty,
+                                        output_cols=output_cols,
+                                        timesteps=timesteps
+                                    )
+        mem.store(
+                    [X_faulty,y_faulty],
+                    file_prefix='reshaped',
+                    file_suffix=faulty_suffix
+                )
+    else:
+        [X_faulty,y_faulty] = mem.load(
+                                        file_prefix='reshaped',
+                                        file_suffix=faulty_suffix
+                                    )
+    return X_faulty, y_faulty
 
 if __name__ == '__main__':
     import sys, os
