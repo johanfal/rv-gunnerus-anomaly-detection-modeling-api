@@ -27,15 +27,23 @@ def check_access():
 	"""Check access to network drive with transmitted signal data. The function
 	assumes that the user is only connected to one network drive."""
 
-	print('Checking access to network drive..')
-	DL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-	drives = ['%s:' % d for d in DL if os.path.exists('%s:' % d)
-            and win32file.GetDriveType('%s:' % d) == win32file.DRIVE_REMOTE]
-	if(not drives):
-		sys.exit('Error: access denied. Remember to connect to the network drive.')
+	if sys.platform == 'win32':
+		print('Checking access to network drive..')
+		DL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+		drives = ['%s:' % d for d in DL if os.path.exists('%s:' % d)
+			and win32file.GetDriveType('%s:' % d) == win32file.DRIVE_REMOTE]
+		if(not drives):
+			sys.exit('Error: access denied. Remember to connect to the network drive.')
+		else:
+			print('Access granted!')
+			return drives[0]
 	else:
-		print('Access granted!')
-		return drives[0]
+		raise NotImplementedError(
+								f"Operating system {sys.platform} is not " \
+								"supported in the current implementation."
+							)
+		sys.exit()
+
 
 def get_single_day_dir(network_location, sensor, year, month, date):
 	"""Get the directory location for a desired sensor at a desired date"""
@@ -105,9 +113,10 @@ def concatenate_files(file_dir,
 	else: ignore_index = False # keep indexing if time is index column
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
 
-def get_startpath(network_location,sensor=None,year=None,month=None,day=None):
+def get_startpath(network_location,sensor=None,training_period=[None]*3):
 
 	""""Return string with starting directory path based on desired data resolution."""
+	[year, month, day] = training_period
 	startpath = network_location
 	for item in [sensor, year, month, day]:
 		if item is not None: startpath = os.path.join(startpath, str(item))
@@ -189,7 +198,7 @@ def all_equal(list, val):
 	return all(elem == val for elem in list)
 
 def get_datetime(filename):
-	"""Returns a datetime.time() object from a file name in known format."""
+	"""Returns a datetime.time() object from a filename in known format."""
 
 	time_string = filename[:filename.rfind('_')]
 	time_string = time_string[time_string.rfind('_')+1:]
