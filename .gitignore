@@ -2,7 +2,6 @@ venv
 __pycache__
 .vscode
 *.pckl
-*.exh_temp_svg
 .gitignore
 !test.pickl
 src/datastore/old
