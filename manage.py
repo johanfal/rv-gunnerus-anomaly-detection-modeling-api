@@ -73,6 +73,7 @@ if __name__ == '__main__':
     DO_RESHAPE = False
     DO_MODELING = False
     DO_TESTING = False
+    DO_FAULT_TESTING = True
     DELETE_PICKLED_FILES = None  # ! Not implemented functionality for this
 
     ##########################################################################
@@ -171,7 +172,7 @@ if __name__ == '__main__':
 
     if DO_MODELING:
         model = sample_model.create(
-                                    X_train,
+                                    X_train.shape[1:],
                                     y_train,
                                     UNITS=UNITS
                                 )
@@ -207,10 +208,9 @@ if __name__ == '__main__':
         raise sys.exit('Under development.')
         # performance = sample_model.test_model(model,history)
 
-    GET_FAULTY_DATA = False
     FAULTY_SUFFIX = 'faulty_data'
 
-    if GET_FAULTY_DATA:
+    if DO_FAULT_TESTING:
         faulty_data = filemag.get_and_store_data(
                             root_dir=startpath,
                             cols=cols,
@@ -287,46 +287,62 @@ if __name__ == '__main__':
     test_rs = df_test_arr.reshape(df_test_arr.shape[0], 1, df_test_arr.shape[1])
 
     mae_loss = np.mean(np.abs(hat_rs-test_rs), axis=1)
-    sns.distplot(mae_loss, kde=True)
-    plt.show()
-    THRESHOLD_PERCENTILE = 99
+    if False: # plotting
+        sns.distplot(mae_loss, kde=True)
+        plt.show()
+    THRESHOLD_PERCENTILE = 99.95
+    NEIGHBORS = 10
     threshold = np.percentile(mae_loss, THRESHOLD_PERCENTILE)
-
     below_threshold = mae_loss[mae_loss < threshold]
     above_threshold = mae_loss[mae_loss > threshold]
 
-    sns.distplot(below_threshold,kde=True,label=f'below, n={below_threshold.shape[0]} (max: {below_threshold.max():.2f})')
-    sns.distplot(above_threshold,kde=True,label=f'above, n={above_threshold.shape[0]} (max: {above_threshold.max():.2f})')
-    plt.legend()
-    plt.show()
-    sns.distplot(mae_loss[mae_loss < threshold], kde=True)
-    plt.show()
-    sns.distplot(mae_loss[mae_loss > np.percentile(mae_loss, 99.9)], kde=True)
-    plt.show()
-
-    plt.plot(history['loss'], label = 'train')
-    plt.plot(history['val_loss'], label = 'test')
-    plt.legend()
-    plt.show()
-    ax = df_hat_filtered['ME1_ExhaustTemp1'].plot()
-    df_test_filtered['ME1_ExhaustTemp1'].plot(ax=ax)
-    plt.legend()
-    plt.show()
-    ax = df_hat_filtered['ME1_ExhaustTemp2'].plot()
-    df_test_filtered['ME1_ExhaustTemp2'].plot(ax=ax)
-    plt.legend()
-    plt.show()
+    if False: # plotting
+        sns.distplot(below_threshold,kde=True,label=f'below, n={below_threshold.shape[0]} (max: {below_threshold.max():.2f})')
+        sns.distplot(above_threshold,kde=True,label=f'above, n={above_threshold.shape[0]} (max: {above_threshold.max():.2f})')
+        plt.legend()
+        plt.show()
+        sns.distplot(mae_loss[mae_loss < threshold], kde=True)
+        plt.show()
+        sns.distplot(mae_loss[mae_loss > np.percentile(mae_loss, 99.9)], kde=True)
+        plt.show()
+        plt.plot(history['loss'], label = 'train')
+        plt.plot(history['val_loss'], label = 'test')
+        plt.legend()
+        plt.show()
+        ax = df_hat_filtered['ME1_ExhaustTemp1'].plot()
+        df_test_filtered['ME1_ExhaustTemp1'].plot(ax=ax)
+        plt.legend()
+        plt.show()
+        ax = df_hat_filtered['ME1_ExhaustTemp2'].plot()
+        df_test_filtered['ME1_ExhaustTemp2'].plot(ax=ax)
+        plt.legend()
+        plt.show()
 
     performance = pd.DataFrame(index=df_hat.index)
+    performance['threshold'] = threshold # ! REMOVE, probably unnecessary
+    col_counter = 0
     for col in PREDICTION_COLS:
         df_hat_filtered[col] - df_test_filtered[col]
+        performance[f'loss_{col}'] = [row[col_counter] for row in mae_loss]
+        performance[f'anomaly_{col}'] = performance[f'loss_{col}'] > performance.threshold
+        performance[f'anomaly_{col}_neigh'] = fnc.get_anomaly_range(performance[f'loss_{col}'],threshold,neighbors=NEIGHBORS)
+        performance[f'pred_{col}'] = df_hat_filtered[col]
+        performance[f'real_{col}'] = df_test_filtered[col]
+        all_anomalies = performance.index[performance[f'anomaly_{col}'] == True].tolist()
+        true_anomalies = performance.index[performance[f'anomaly_{col}_neigh'] == True].tolist()
+        false_anomalies = np.setdiff1d(all_anomalies, true_anomalies)
+        for anom in false_anomalies:
+            performance.drop(anom, inplace=True)
 
-    performance['loss'] = mae_loss
-    performance['threshold'] = threshold
+        plt.plot(performance.index, performance[f'loss_{col}'], label=f'loss_{col}')
+        plt.plot(performance.index, performance[f'loss_{col}'].max()* performance[f'anomaly_{col}_neigh'], label=f'anomaly_{col}')
+        plt.plot(performance.index, performance.threshold, label='threshold')
+        plt.legend()
+        plt.show()
 
+        col_counter += 1
 
-    # model.predict(...)
-
+    print("Hello world!")
 
     ##########################################################################
     ########################### VISUALIZE RESULTS ############################
@@ -336,4 +352,4 @@ if __name__ == '__main__':
     # Stuff to do
     # - Make sure that the different functions work for training_pct = 1.0
     # - Check how to model.predict with faulty data - does it have to be transformed and/or reshaped?
-    # - Add store from temp_file to manage for reshaped data
+    # - Add store from 'batch_create_files.py' to 'manage.py' for reshaped data
