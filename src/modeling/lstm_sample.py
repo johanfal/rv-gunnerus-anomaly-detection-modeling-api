@@ -7,7 +7,7 @@ from src.funcs import memory as mem
 from src.modeling import helper_funcs as fnc
 from tensorflow import keras
 
-def create(X_train,y_train,verbose=True,**parameters):
+def create(input_shape,verbose=True,**parameters):
     """Description. The function takes a variable number of keyword arguments,
     which can be used to build the model. Change verbose to false to suppress
     model summary printout."""
@@ -19,7 +19,7 @@ def create(X_train,y_train,verbose=True,**parameters):
     UNITS = parameters['UNITS']
     OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
 
-    model.add(keras.layers.LSTM(UNITS, input_shape=(X_train.shape[1:])))
+    model.add(keras.layers.LSTM(UNITS, input_shape=(input_shape)))
     model.add(keras.layers.Dense(2))
     # model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
     # model.add(keras.layers.Dense(2, input_dim = X_train.shape[1]))
