@@ -146,6 +146,28 @@ def get_modelstring(prefix='model',**kwargs):
     return modelstring
     # return f"ts-{str(timesteps).zfill(3)}_ep-{str(EPOCHS).zfill(2)}_un-{str(UNITS).zfill(2)}_bs-{str(BATCH_SIZE).zfill(2)}"
 
+
+def get_anomaly_range(df_loss,threshold,neighbors=0):
+    """Description"""
+    df_bool = df_loss > threshold
+    return _check_neighboring_bools(df_bool,neighbors=neighbors)
+
+
+def _check_neighboring_bools(df_bool,neighbors=0):
+    """Checks if the neighborhood on each side of a boolean True value is also
+    True. If not, the boolean value is changed to False. The function helps
+    remove false outliers which will otherwise trigger unnwanted anomalies.
+    The input variable 'neighbors' defines the number of values to include in
+    the neighborhood of each timestep. If neighbors=n, timestep t will result
+    in a neighborhood containing values t-n, t-n+1,...,t,...,t+n-1,t+n, thus
+    yielding a neighborhood of 2n+1 elements (including t itself)."""
+    df_neighborhood = pd.DataFrame(df_bool.values)
+    for i in range(1, neighbors+1):
+        df_neighborhood[f'{i}'] = df_bool.shift(-i,fill_value=False).values
+        df_neighborhood[f'+{i}'] = df_bool.shift(i,fill_value=False).values
+    return df_neighborhood.all(axis='columns').values
+
+
 if __name__ == '__main__':
     import sys, os
     sys.exit(f'Run from manage.py, not {os.path.basename(__file__)}.')
