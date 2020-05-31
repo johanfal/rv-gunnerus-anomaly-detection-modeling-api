@@ -203,9 +203,9 @@ if DO_TESTING:
 if GET_FAULTY:
     F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
-        True, # Create faulty data file
-        True, # Tranform data
-        True, # Reshape data
+        False, # Create faulty data file
+        False, # Tranform data
+        False, # Reshape data
     ]
     F_INTERVAL =[
         2019, # year (None: all available data will be used)

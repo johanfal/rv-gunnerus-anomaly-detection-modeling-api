@@ -9,27 +9,28 @@ from src.funcs import memory as mem
 
 def reshape(df_train, df_test=None,output_cols=None,timesteps=1,verbose=True):
     """Description."""
-
-    if verbose: print(f"Training data dimensionsality: {df_train.shape}")
+    if df_test is not None: spec=' training'
+    else: spec=''
+    if verbose: print(f"Dimensionality of{spec} data: {df_train.shape}")
     X_train, y_train = _reshape_data(
                                         df_train,
                                         timesteps,
                                         output_cols=output_cols,
-                                        bar_desc='Reshaping training data..'
+                                        bar_desc=f'Reshaping{spec} data..'
                                     )
     if verbose:
-        print("Reshaped training data dimensionsality: X_train: "\
+        print(f"Dimensionality of reshaped{spec} data: X_train: "\
                 f"{X_train.shape} | y_train: {y_train.shape}.")
     if df_test is not None:
         if verbose:
-            print(f"Test data dimensionality: {df_test.shape}")
+            print(f"Dimensionality of test data: {df_test.shape}")
         X_test, y_test = _reshape_data(
                                         df_test,
                                         timesteps,
                                         output_cols=output_cols,
                                         bar_desc='Reshaping test data..'
                                     )
-        if verbose: print("Reshaped testing data dimensionsality: X_test: "\
+        if verbose: print("Dimensionality of reshaped testing data: X_test: "\
                             f"{X_test.shape} | y_test: {y_test.shape}.")
         return  [X_train, y_train, X_test, y_test]
     else: return X_train, y_train
@@ -42,28 +43,32 @@ def transform(data,training_pct=0.8,scaler_type='minmax'):
     # Create training and testing sets
     train_size = int(np.ceil(data.shape[0] * training_pct))
 
-    df_train, df_test = data.iloc[:train_size], data.iloc[train_size:]
+    df_train = data.iloc[:train_size]
 
     # Scaler
     scaler = get_scaler(scaler_type)
     scaler = scaler.fit(df_train[df_train.columns])
-
     arr_train = scaler.transform(df_train) # transformed training array
-    arr_test = scaler.transform(df_test) # transformed testing array
-
-    # Add transformed arrays to dataframe
+    # Add transformed arrays to training dataframe:
     df_train = pd.DataFrame(
                             arr_train,
                             columns=df_train.columns,
                             index=df_train.index
                         )
-    df_test = pd.DataFrame(
-                            arr_test,
-                            columns=df_test.columns,
-                            index=df_test.index
-                        )
-
-    return scaler, df_train, df_test
+    if training_pct < 1.0:
+        df_test = data.iloc[train_size:]
+        arr_test = scaler.transform(df_test) # transformed testing array
+        # Add transformed arrays to testing dataframe:
+        df_test = pd.DataFrame(
+                                arr_test,
+                                columns=df_test.columns,
+                                index=df_test.index
+                            )
+        return scaler, df_train, df_test
+    elif training_pct > 1.0:
+        sys.exit(f"Training percentage has value {training_pct}, "\
+                    "but can not be above 1.0.")
+    else: return scaler, df_train
 
 def get_scaler(scaler_type='minmax'):
     """Normalize data based on a desired scaler. Default supported scalers are
@@ -212,7 +217,7 @@ def get_faulty_reshaped(
         faulty_data = filemag.get_and_store_data(
                                             root_dir=root_dir,
                                             cols=cols,
-                                            index_cols=index_col,
+                                            index_col=index_col,
                                             chunksize=chunksize,
                                             filter_operation=filter_operation,
                                             file_suffix=faulty_suffix,
