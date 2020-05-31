@@ -19,7 +19,8 @@ if __name__ == '__main__':
         network_dir = filemag.check_access()
     else:
         raise NotImplementedError(
-                    f"Support for {sys.platform} has yet to be implemented."
+                                f"Operating system {sys.platform} is not " \
+                                "supported in the current implementation."
                 )
         sys.exit()
 
@@ -112,7 +113,7 @@ if __name__ == '__main__':
 
     # Data parameters
     TRAINING_PCT=1.0
-    TIMESTEPS=15
+    TIMESTEPS=30
     SCALER_TYPE = 'minmax'
 
     # Model parameters
@@ -276,7 +277,7 @@ if __name__ == '__main__':
         rmse_ind.append(np.sqrt(
                 mean_squared_error(df_hat_filtered[col],df_test_filtered[col])
             ))
-        mae_ind.append(np.mean(np.abs(df_hat_filtered[col].values()-df_test_filtered[col].values()), axis=1))
+        mae_ind.append(np.mean(np.abs(df_hat_filtered[col].values-df_test_filtered[col].values)))
     rmse_tot = np.sqrt(mean_squared_error(df_hat_filtered,df_test_filtered))
     mae_tot = np.mean(np.abs(df_hat_filtered-df_test_filtered))
 
@@ -285,8 +286,23 @@ if __name__ == '__main__':
     hat_rs = df_hat_arr.reshape(df_hat_arr.shape[0], 1, df_hat_arr.shape[1])
     test_rs = df_test_arr.reshape(df_test_arr.shape[0], 1, df_test_arr.shape[1])
 
-    train_mae_loss = np.mean(np.abs(hat_rs-test_rs), axis=1)
-    sns.distplot(train_mae_loss, bins=100, kde=True)
+    mae_loss = np.mean(np.abs(hat_rs-test_rs), axis=1)
+    sns.distplot(mae_loss, kde=True)
+    plt.show()
+    THRESHOLD_PERCENTILE = 99
+    threshold = np.percentile(mae_loss, THRESHOLD_PERCENTILE)
+
+    below_threshold = mae_loss[mae_loss < threshold]
+    above_threshold = mae_loss[mae_loss > threshold]
+
+    sns.distplot(below_threshold,kde=True,label=f'below, n={below_threshold.shape[0]} (max: {below_threshold.max():.2f})')
+    sns.distplot(above_threshold,kde=True,label=f'above, n={above_threshold.shape[0]} (max: {above_threshold.max():.2f})')
+    plt.legend()
+    plt.show()
+    sns.distplot(mae_loss[mae_loss < threshold], kde=True)
+    plt.show()
+    sns.distplot(mae_loss[mae_loss > np.percentile(mae_loss, 99.9)], kde=True)
+    plt.show()
 
     plt.plot(history['loss'], label = 'train')
     plt.plot(history['val_loss'], label = 'test')
@@ -300,6 +316,14 @@ if __name__ == '__main__':
     df_test_filtered['ME1_ExhaustTemp2'].plot(ax=ax)
     plt.legend()
     plt.show()
+
+    performance = pd.DataFrame(index=df_hat.index)
+    for col in PREDICTION_COLS:
+        df_hat_filtered[col] - df_test_filtered[col]
+
+    performance['loss'] = mae_loss
+    performance['threshold'] = threshold
+
 
     # model.predict(...)
 
