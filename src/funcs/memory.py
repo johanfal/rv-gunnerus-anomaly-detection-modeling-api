@@ -64,7 +64,7 @@ def delete(
 
 def save_model(
                 model:keras.model,
-                history:keras.history.history,
+                history:list,
                 model_dir:str='src/datastore/models',
                 file_prefix:str=None,
                 modelstring:str='unspecificed'
@@ -90,7 +90,7 @@ def save_model(
     return
 
 def load_from_list_of_models(model_dir:str='src/datastore/models/'
-                        ) -> [keras.model, keras.history.history]:
+                        ) -> [keras.model, list]:
     """Description."""
 
     model_dir = _check_dir_string(model_dir)
