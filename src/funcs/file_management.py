@@ -24,8 +24,8 @@ def get_signal_list(sensor, component=None):
 		return list(json_columns['sensors'][sensor][component])
 
 def check_access():
-	"""Check access to network drive with transmitted signal data. The function
-	assumes that the user is only connected to one network drive."""
+	"""Check access to network drive with transmitted signal data. The
+	function assumes that the user is only connected to one network drive."""
 
 	if sys.platform == 'win32':
 		print('Checking access to network drive..')
@@ -33,7 +33,8 @@ def check_access():
 		drives = ['%s:' % d for d in DL if os.path.exists('%s:' % d)
 			and win32file.GetDriveType('%s:' % d) == win32file.DRIVE_REMOTE]
 		if(not drives):
-			sys.exit('Error: access denied. Remember to connect to the network drive.')
+			sys.exit("Error: access denied. "\
+					"Remember to connect to the network drive.")
 		else:
 			print('Access granted!')
 			return drives[0]
@@ -48,7 +49,12 @@ def check_access():
 def get_single_day_dir(network_location, sensor, year, month, date):
 	"""Get the directory location for a desired sensor at a desired date"""
 
-	return os.path.join(network_location, sensor, str(year), str(month).zfill(2), str(date).zfill(2))
+	return os.path.join(
+						network_location,sensor,
+						str(year),
+						str(month).zfill(2),
+						str(date).zfill(2)
+					)
 
 def get_file_list(file_dir):
 	try:
@@ -97,25 +103,32 @@ def concatenate_files(file_dir,
 							error_bad_lines=True)
 
 		# Apply operation filter if specified by function input
-		if(filter_operation):
-			df = df[df[filter_column] > filter_value] # filter based on appropriate measures
+		if(filter_operation): # filter based on appropriate measures
+			df = df[df[filter_column] > filter_value]
 
-		# Remove simulated error induced 21-nov 2019 between 10:50:16 and 10:56:33
-		if faulty_data.__len__() != 0:
+		if faulty_data.__len__() != 0: # remove simulated error interval
 			if file in faulty_dict:
-				simulated_error_start, simulated_error_end = faulty_dict[file][0], faulty_dict[file][1]
-				df = remove_faulty_data(df, simulated_error_start, simulated_error_end, file)
+				simulated_error_start = faulty_dict[file][0]
+				simulated_error_end = faulty_dict[file][1]
+				df = remove_faulty_data(
+										df,
+										simulated_error_start,
+										simulated_error_end,
+										file
+									)
 
 		dfs.append(df) # append dataframe from file to the list of dataframes
 
-	# If time is not specified as index column, ignore numbering indices in concatenated dataframe
+	# If time is not specified as index column, ignore numbering indices in
+	# concatenated dataframe:
 	if index_col is None: ignore_index = True
 	else: ignore_index = False # keep indexing if time is index column
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
 
 def get_startpath(network_location,sensor=None,training_period=[None]*3):
+	""""Return string with starting directory path based on desired data
+	resolution."""
 
-	""""Return string with starting directory path based on desired data resolution."""
 	[year, month, day] = training_period
 	startpath = network_location
 	for item in [sensor, year, month, day]:
@@ -129,20 +142,34 @@ def get_data(
 				index_col=None,
 				chunksize=None,
 				filter_operation=False,
-				faulty_data=[]
+				faulty_data=[],
+				verbose=True
 			):
-
-	"""Retrieves a concatenated dataframe with all data from the gives root directory."""
+	"""Retrieve a concatenated dataframe with all data from the given root
+	directory."""
 
 	dfs = [] # list for storing dataframes to be concatenated
-
+	if verbose:
+		print(f"Retrieving data from '{root_dir}'...")
+		n_files = 0 # number of files concatenated
 	# Iterate through file hierarchy based on the given root directory
 	for root, dirs, files in os.walk(root_dir):
 
-		# If list of files at current directory is not empty, concatenate containing files
+		# If list of files at current directory is not empty, concatenate
+		# contained files:
+		if dirs.__len__() > 0:
+			n_dirs = dirs.__len__()
+			if verbose:
+				print(f"Directories in '{root}': {dirs.__len__()}.")
+
+
 		if files != []:
-			print(root) # ! REMOVE
-			# Concatenate files in the given directory based on specified options
+			if verbose:
+				print(f"Current directory: {root} ({files.__len__()} files)."\
+					f" {n_files} of {n_dirs} files appended from parent "\
+					f"directory.", end='\r')
+				n_files += 1
+			# Concatenate files in given directory based on specified options
 			df = concatenate_files(file_dir=root,
 									cols=cols,
 									index_col=index_col,
@@ -150,7 +177,6 @@ def get_data(
 									filter_operation=filter_operation,
 									faulty_data=faulty_data
 								)
-
 			dfs.append(df) # Append current dataframe to list of dataframes
 
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
@@ -162,25 +188,28 @@ def get_and_store_data(
 						chunksize=None,
 						filter_operation=False,
 						file_suffix=None,
-						faulty_data=[]
+						faulty_data=[],
+						verbose=True
 					):
+	"""Description."""
+
 	data = get_data(
 						root_dir=root_dir,
 						cols=cols,
 						index_col=index_col,
 						chunksize=chunksize,
 						filter_operation=filter_operation,
-						faulty_data=faulty_data
+						faulty_data=faulty_data,
+						verbose=verbose
 	)
-	if data.empty:
-		return False # ! REMOVE
+
+	if data.empty: # all data in time interval is filtered as non-operational
 		sys.exit(
 				'No data in the selected interval qualifies the filtering ' \
 				'conditions. No object has been pickled to memory.'
 			)
-
 	else:
-		mem.store(data,file_suffix=file_suffix)
+		mem.store(data,file_suffix=file_suffix) # store data as file
 	return data
 
 def concatenate_dataframes(dfs,index_col=None):
@@ -190,7 +219,7 @@ def concatenate_dataframes(dfs,index_col=None):
 
 	if index_col is None: ignore_index = True
 	else: ignore_index = False
-	return pd.concat(dfs,axis=0,ignore_index=ignore_index) # return concatenated dataframe
+	return pd.concat(dfs,axis=0,ignore_index=ignore_index)
 
 def all_equal(list, val):
 	"""Returns boolean value corresponding to all values in a list array being equal"""
@@ -229,13 +258,14 @@ def remove_faulty_data(df, start, end, filename):
 		end = to_datetime(end)
 
 	# Remove faulty data from df:
-	# (U)sing end time before start time excludes the interval in-between)
+	# (Using end time before start time excludes the interval in-between)
 	df_filtered = df.between_time(
 		start_time=end,
 		end_time=start,
 		include_start=False,
 		include_end=False
 	)
+	# Number of deleted rows due to faulty data:
 	n_deleted_rows = df.shape[0] - df_filtered.shape[0]
 	print(
 		f"{n_deleted_rows} rows of faulty data between {start} and {end} " \
@@ -248,11 +278,12 @@ def get_progress_bar(range_max, bar_desc=None):
 	if bar_desc:
 		print(f'{bar_desc}'.format())
 	return progressbar.ProgressBar(maxval=range_max, \
-		widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+		widgets=[progressbar.Bar('=','[',']'),' ',progressbar.Percentage()])
 
 
-"""Parser to convert string object to datetime object when reading csv-files using pandas"""
 date_parser = lambda time: pd.to_datetime(time, format='%Y-%m-%d %H:%M:%S.%f')
+"""Parser to convert string object to datetime object when reading csv-files
+using pandas."""
 
 if __name__ == '__main__':
     sys.exit(f'Run from manage.py, not {os.path.basename(__file__)}.')
