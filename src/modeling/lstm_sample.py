@@ -7,7 +7,7 @@ from src.funcs import memory as mem
 from src.modeling import helper_funcs as fnc
 from tensorflow import keras
 
-def create(input_shape,verbose=True,**parameters):
+def create(input_shape:tuple,verbose:bool=True,**parameters) -> keras.model:
     """Description. The function takes a variable number of keyword arguments,
     which can be used to build the model. Change verbose to false to suppress
     model summary printout."""
@@ -38,7 +38,14 @@ def create(input_shape,verbose=True,**parameters):
 
     return model
 
-def train(model,X_train,y_train,X_test,y_test,**parameters):
+def train(
+            model:keras.model,
+            X_train:pd.DataFrame,
+            y_train:pd.DataFrame,
+            X_test:np.ndarray,
+            y_test:np.ndarray,
+            **parameters
+        ) -> [keras.model, list]:
     """Description."""
 
     # Create variables based on the desired keyword arguments used to train
@@ -55,8 +62,52 @@ def train(model,X_train,y_train,X_test,y_test,**parameters):
                 )
     return model, history.history
 
-def test_model(model,history):
+def test(
+            model:keras.model,
+            history:list,
+            df_test:pd.DataFrame,
+            X_test:np.ndarray,
+            threshold_pct:float,
+            pred_scaler:sklearn.preprocessing.scaler,
+            test_scaler:sklearn.preprocessing.scaler=None,
+            prediction_cols:list=None,
+            **parameters
+    ) -> pd.DataFrame:
     """Description."""
+    # THRESHOLD_PCT = parameters['THRESHOLD_PCT']
+    # ANOMALY_NEIGHBORS = parameters['ANOMALY_NEIGHBORS']
+
+    if test_scaler is None: test_scaler=pred_scaler
+
+    # Predict values on testing data:
+    y_hat = model.predict(X_test)
+
+    # Retrieve and remove timestep difference (timesteps) from df_test:
+    timesteps = df_test.shape[0] - y_hat.shape[0]
+    df_test = df_test[timesteps:]
+
+    # Merge original and predicted values in a single dataframe
+    df_hat = fnc.get_df_hat(df_test,y_hat,prediction_cols=prediction_cols)
+
+    # Inverse transform df_hat and df_test back to original magnitudes:
+    df_hat_inv = fnc.inverse_transform_dataframe(df_hat, pred_scaler)
+    df_test_inv = fnc.inverse_transform_dataframe(df_test, test_scaler)
+
+    # Filter prediction columns(remove?):
+    df_hat_filtered = df_hat_inv.filter(prediction_cols)
+    df_test_filtered = df_test_inv.filter(prediction_cols)
+
+    # Calculate absolute error for each predicted timestep:
+    absolute_error = fnc.get_absolute_error(df_hat_filtered, df_test_filtered)
+
+
+    thresholds = fnc.get_thresholds(absolute_error)
+
+    # Calculate mean absolute error (MAE) for each predicted column:
+    mae = fnc.get_mae(absolute_error)
+    # Calculate root mean square error (RMSE) for each predicted column:
+    # rmse = fnc.get_rmse(df_hat_filtered, df_test_filtered)
+
     performance = None
 
     return performance
