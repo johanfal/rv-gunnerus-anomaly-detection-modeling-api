@@ -1,13 +1,21 @@
 import pickle
+import sys
+
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.metrics import mean_squared_error
 
 from src.funcs import file_management as filemag
 from src.funcs import memory as mem
 
-
-def reshape(df_train, df_test=None,output_cols=None,timesteps=1,verbose=True):
+def reshape(
+            df_train:pd.DataFrame,
+            df_test:pd.DataFrame=None,
+            output_cols:list=None,
+            timesteps:int=1,
+            verbose:bool=True
+        ) -> [pd.DataFrame, pd.DataFrame]:
     """Description."""
     if df_test is not None: spec=' training'
     else: spec=''
@@ -35,7 +43,11 @@ def reshape(df_train, df_test=None,output_cols=None,timesteps=1,verbose=True):
         return  [X_train, y_train, X_test, y_test]
     else: return X_train, y_train
 
-def transform(data,training_pct=0.8,scaler_type='minmax'):
+def transform(
+                data:pd.DataFrame,
+                training_pct:float=0.8,
+                scaler_type:str='minmax'
+            ) -> [sklearn.preprocessing.scaler, pd.DataFrame]:
     """Transforms a given set of data to normalized sets of training and
     testing data. The transformed values are returned as two dataframes,
     representing the training data and testing data, respectively."""
@@ -70,7 +82,7 @@ def transform(data,training_pct=0.8,scaler_type='minmax'):
                     "but can not be above 1.0.")
     else: return scaler, df_train
 
-def get_scaler(scaler_type='minmax'):
+def get_scaler(scaler_type:str='minmax') -> sklearn.preprocessing.scaler:
     """Normalize data based on a desired scaler. Default supported scalers are
     MinMaxScaler() and StandardScaler(). StandardScaler() is used if the data
     is known to have a normal distribution, while the MinMaxScaler() can be
@@ -86,39 +98,43 @@ def get_scaler(scaler_type='minmax'):
         return MinMaxScaler(feature_range=feature_range)
     if scaler_type == 'standard':
         # Data is known to have a normal distribution
-        return StandardScaler() # normalize about a zero-mean with unit variance
+        # Scaler that normalizes about a zero-mean with unit variance
+        return StandardScaler()
 
     if scaler_type == 'your_scaler_type_goes_here':
         return None # change to fit with your desired scaler
 
-def get_df_pred(df,y_hat,prediction_cols=None):
-    """Description."""
-    if prediction_cols == None:
-        prediction_cols = df.columns
-
+def get_df_hat(df:pd.DataFrame,y_hat:np.ndarray,prediction_cols:list=None
+            ) -> pd.DataFrame:
+    """Integrate values of predicted columns into existing dataframe. Through
+    prediction_cols, the function replaces the corresponding columns in the
+    input df with array values in y_hat (these must be ordered according to
+    the prediction_cols)."""
+    if prediction_cols == None: prediction_cols = df.columns
     df_hat = df.drop(prediction_cols, axis=1)
 
     pred_col_counter = 0
     for pred_col in prediction_cols:
-        current_values = [row[pred_col_counter] for row in y_hat]
+        try:
+            current_values = [row[pred_col_counter] for row in y_hat]
+        except:
+            sys.exit(
+                "Mismatch between y_hat and prediction columns.\nIndex "\
+                f"{pred_col_counter} corresponding with prediction column "\
+                f"'{prediction_cols[pred_col_counter]}' is out of range for "\
+                f" y_hat with shape ({y_hat.shape[0]},{y_hat.shape[1]})."
+            )
         for i in range(df.columns.__len__()):
             if pred_col == df.columns[i]:
                 df_hat.insert(loc=i,column=pred_col,value=current_values)
-                continue
+                break
         pred_col_counter += 1
-
-    for i in range(prediction_cols.__len__()):
-        try:
-            df_hat[prediction_cols[i]] = [row[i] for row in y_hat]
-        except:
-            sys.exit(
-                "Mismatch between y_hat and prediction columns.\n" \
-                f"Index {i} corresponding with prediction columns " \
-                f"{prediction_cols[i]} is out of range for y_hat."
-            )
     return df_hat
 
-def inverse_transform_dataframe(df,scaler):
+def inverse_transform_dataframe(
+                                df:pd.DataFrame,
+                                scaler:sklearn.preprocessing.scaler
+                            ) -> pd.DataFrame:
     """Description."""
     itf_arr = scaler.inverse_transform(df)
     itf_df = pd.DataFrame()
@@ -127,7 +143,12 @@ def inverse_transform_dataframe(df,scaler):
 
     return itf_df
 
-def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
+def _reshape_data(
+                    df:pd.DataFrame,
+                    timesteps:int=1,
+                    output_cols:list=None,
+                    bar_desc:str=None
+                ) -> [np.array, np.array]:
     """Reshapes a given dataframe to a 3D tensor based on the columns in the
     data (desired features), desired timesteps, and desired output columns
     (features to predict). The optional argument bar_desc is a description for
@@ -140,8 +161,8 @@ def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
 
     df_x = df
 
-    # If the desired number of outputs (values to be predicted) is not the same
-    # as the number of inputs (features), create a filtered dataframe
+    # If the desired number of outputs (values to be predicted) is not equal
+    # to the number of inputs (features), create a filtered dataframe:
     if output_cols is not None:
         df_y = df[output_cols]
     else:
@@ -159,30 +180,28 @@ def _reshape_data(df,timesteps=1,output_cols=None,bar_desc=None):
     bar.finish()
     return np.array(Xs), np.array(ys)
 
-def compare_models(models):
-    """Idea of the function is to be able to view the different parameters
-    and performance in e.g. a table. Could this be done in the web app?"""
-    return
 
-def get_modelstring(prefix='model',**kwargs):
+def get_modelstring(prefix:str='model',**properties) -> str:
     """Create desired filename for storing models. Use **kwargs to specify
     the properties of the model by specifying keywords and their corresponding
     values. As an example, using 'units=64' will add 'units-64' to the
     filename, indicating that the model used 64 units. Best practice is to
     make the values dynamic, e.g. by using 'units=UNITS'."""
     modelstring = prefix
-    for key, arg in kwargs.items():
+    for key, arg in properties.items():
         if type(arg) is int:
             arg = str(arg).zfill(3)
         modelstring = modelstring + f"_{str(key)}-{arg}"
     return modelstring
 
-def get_anomaly_range(df_loss,threshold,neighbors=0):
+def get_anomaly_range(df_loss:pd.DataFrame,threshold:float,neighbors:int=0
+                    ) -> pd.DataFrame:
     """Description"""
     df_bool = df_loss > threshold
     return _check_neighboring_bools(df_bool,neighbors=neighbors)
 
-def _check_neighboring_bools(df_bool,neighbors=0):
+def _check_neighboring_bools(df_bool:pd.DataFrame,neighbors:int=0
+                        ) -> pd.DataFrame:
     """Checks if the neighborhood on each side of a boolean True value is also
     True. If not, the boolean value is changed to False. The function helps
     remove false outliers which will otherwise trigger unnwanted anomalies.
@@ -197,17 +216,17 @@ def _check_neighboring_bools(df_bool,neighbors=0):
     return df_neighborhood.all(axis='columns').values
 
 def get_faulty(
-                        root_dir,
-                        cols,
-                        timesteps,
-                        index_col=None,
-                        chunksize=None,
-                        filter_operation=True,
-                        faulty_suffix='faulty',
-                        action_parameters=[True]*3,
-                        scaler_type='minmax',
-                        output_cols=None,
-                    ):
+                root_dir:str,
+                cols:list,
+                timesteps:int,
+                index_col:'str'=None,
+                chunksize:int=None,
+                filter_operation:bool=True,
+                faulty_suffix:str='faulty',
+                action_parameters:list=[True]*3,
+                scaler_type:str='minmax',
+                output_cols:list=None,
+            ) -> [pd.DataFrame,np.array,sklearn.preprocessing.scaler]:
     """Description. Returns a complete dataframe in the format expected by the
     program, as well as the transformed, reshaped data alongside the
     transformation scaler, which is used for inverse transformation."""
@@ -262,6 +281,56 @@ def get_faulty(
                                         file_suffix=faulty_suffix
                                     )
     return complete_data, X_reshaped, scaler
+
+def get_absolute_error(df_real:pd.DataFrame,df_pred:pd.DataFrame) -> dict:
+    """Calculate absolute error for each predicted timestep."""
+
+    absolute_error = {}
+    for col in df_pred.columns:
+        # If values are predicted for a range of timesteps:
+        if df_pred.shape.__len__() == 3:
+            # Calculate as mean absolute error for each range:
+            absolute_error[col] = np.mean(np.abs(df_real[col]-df_pred[col]),axis=1)
+        else: # if values are predicted for one timestep at a time
+            # Calculate as absolute error for each timestep:
+            absolute_error[col] = np.abs(df_real[col] - df_pred[col])
+    return absolute_error
+
+def get_mae(absolute_error:dict) -> dict:
+    """Calculate mean absolute error (MAE) from a dictionary of absolute_error
+    values for each timestep of a predicted column. The absolute_error input
+    is a dict with the predicted column as key and absolute_error values for
+    each timestep as values. The MAE is returned as a dict as well with the
+    mean of all timesteps as values for predicted column keys."""
+
+    mae = {}
+    for key, values in absolute_error.items():
+        mae[key] = np.mean(values)
+    return mae
+
+def get_thresholds(absolute_error:dict, threshold_pct:float) -> dict:
+    """Description."""
+
+    thresholds = {}
+    for key, values in absolute_error.items():
+        thresholds[key] = np.percentile(values, threshold_pct)
+    return thresholds
+
+# def get_rmse(df_pred,df_real) -> dict:
+#     """Calculate root mean square error (RMSE) as the square root of MSE for
+#     each predicted column. The RMSE values are returned as a dictionary with
+#     the predicted column names as keys."""
+#     rmse = {}
+#     for col in df_pred.columns:
+#         # If values are predicted for a range of timesteps:
+#         if df_pred.shape.__len__() == 3:
+#             # Calculate as mean absolute error for each range:
+
+#         else: # if values are predicted for one timestep at a time
+#             # Calculate as absolute error for each timestep:
+#             rmse[col] = np.sqrt(mean_squared_error(df_real[col],df_pred[col]))
+
+#     return rmse
 
 if __name__ == '__main__':
     import sys, os
