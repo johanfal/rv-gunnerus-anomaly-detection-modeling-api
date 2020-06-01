@@ -196,10 +196,6 @@ else: # laod stored, reshaped data
     else: # load stored model
         model, history = mem.load_from_list_of_models()
 
-if DO_TESTING:
-    raise sys.exit('Under development.')
-    # performance = sample_model.test_model(model,history)
-
 if GET_FAULTY:
     F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
@@ -207,6 +203,8 @@ if GET_FAULTY:
         False, # Tranform data
         False, # Reshape data
     ]
+    # Choose time interval of data selection (remember that the interval with
+    # simulated error must be included):
     F_INTERVAL =[
         2019, # year (None: all available data will be used)
         11, # month (None: all available data in given year will be used)
@@ -215,7 +213,7 @@ if GET_FAULTY:
 
     f_startpath = filemag.get_startpath(network_dir,SENSORS,F_INTERVAL)
 
-    [X_faulty,y_faulty] = fnc.get_faulty_reshaped(
+    [faulty_data, faulty_reshaped, faulty_scaler]  = fnc.get_faulty(
                                         root_dir=f_startpath,
                                         cols=cols,
                                         timesteps=TIMESTEPS,
@@ -228,14 +226,20 @@ if GET_FAULTY:
                                         output_cols=PREDICTION_COLS
                                     )
 
+if DO_TESTING:
+    raise sys.exit('Under development.')
+    # performance = sample_model.test_model(model,history)
+
 # Need to inverse transform data
 y_hat = model.predict(X_test)
+y_hat_test = model.predict(X_test)
+y_hat_faulty = model.predict(faulty_reshaped)
 
-# Remove columns of predicted values and drop the first timestep
+# Create a dataframe inserting predicted values into relevant columns:
+df_test = df_test[TIMESTEPS:] # remove first timestep
 df_hat = fnc.get_df_pred(
                             df_test,
                             y_hat,
-                            TIMESTEPS,
                             prediction_cols=PREDICTION_COLS
                     )
 df_hat_inv = fnc.inverse_transform_dataframe(df_hat, scaler)

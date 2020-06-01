@@ -91,12 +91,12 @@ def get_scaler(scaler_type='minmax'):
     if scaler_type == 'your_scaler_type_goes_here':
         return None # change to fit with your desired scaler
 
-def get_df_pred(df,y_hat,timesteps,prediction_cols=None):
+def get_df_pred(df,y_hat,prediction_cols=None):
     """Description."""
     if prediction_cols == None:
         prediction_cols = df.columns
 
-    df_hat = df[timesteps:].drop(prediction_cols, axis=1)
+    df_hat = df.drop(prediction_cols, axis=1)
 
     pred_col_counter = 0
     for pred_col in prediction_cols:
@@ -176,7 +176,6 @@ def get_modelstring(prefix='model',**kwargs):
             arg = str(arg).zfill(3)
         modelstring = modelstring + f"_{str(key)}-{arg}"
     return modelstring
-    # return f"ts-{str(timesteps).zfill(3)}_ep-{str(EPOCHS).zfill(2)}_un-{str(UNITS).zfill(2)}_bs-{str(BATCH_SIZE).zfill(2)}"
 
 def get_anomaly_range(df_loss,threshold,neighbors=0):
     """Description"""
@@ -197,7 +196,7 @@ def _check_neighboring_bools(df_bool,neighbors=0):
         df_neighborhood[f'+{i}'] = df_bool.shift(i,fill_value=False).values
     return df_neighborhood.all(axis='columns').values
 
-def get_faulty_reshaped(
+def get_faulty(
                         root_dir,
                         cols,
                         timesteps,
@@ -209,12 +208,14 @@ def get_faulty_reshaped(
                         scaler_type='minmax',
                         output_cols=None,
                     ):
-    """Description."""
+    """Description. Returns a complete dataframe in the format expected by the
+    program, as well as the transformed, reshaped data alongside the
+    transformation scaler, which is used for inverse transformation."""
 
     [create_data_file, do_transform, do_reshape] = action_parameters
 
     if create_data_file:
-        faulty_data = filemag.get_and_store_data(
+        complete_data = filemag.get_and_store_data(
                                             root_dir=root_dir,
                                             cols=cols,
                                             index_col=index_col,
@@ -223,16 +224,16 @@ def get_faulty_reshaped(
                                             file_suffix=faulty_suffix,
                                             faulty_data=[]
                                         )
-        mem.store(faulty_data,file_suffix=faulty_suffix)
+        mem.store(complete_data,file_suffix=faulty_suffix)
     else:
-        faulty_data = mem.load(file_suffix=faulty_suffix)
+        complete_data = mem.load(file_suffix=faulty_suffix)
 
     if do_transform:
         [scaler, df_faulty,] = transform(
-                                                    faulty_data,
-                                                    training_pct=1.0,
-                                                    scaler_type=scaler_type
-                                            )
+                                            complete_data,
+                                            training_pct=1.0,
+                                            scaler_type=scaler_type
+                                    )
         mem.store(
                     [scaler,df_faulty],
                     file_prefix='transformed',
@@ -245,22 +246,22 @@ def get_faulty_reshaped(
                                     )
 
     if do_reshape:
-        [X_faulty,y_faulty] = reshape(
+        [X_reshaped,y_reshaped] = reshape(
                                         df_faulty,
                                         output_cols=output_cols,
                                         timesteps=timesteps
                                     )
         mem.store(
-                    [X_faulty,y_faulty],
+                    [X_reshaped,y_reshaped],
                     file_prefix='reshaped',
                     file_suffix=faulty_suffix
                 )
     else:
-        [X_faulty,y_faulty] = mem.load(
+        [X_reshaped,y_reshaped] = mem.load(
                                         file_prefix='reshaped',
                                         file_suffix=faulty_suffix
                                     )
-    return X_faulty, y_faulty
+    return complete_data, X_reshaped, scaler
 
 if __name__ == '__main__':
     import sys, os
