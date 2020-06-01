@@ -12,7 +12,7 @@ import win32file
 from src.funcs import memory as mem
 
 
-def get_signal_list(sensor, component=None):
+def get_signal_list(sensor:str, component:str=None) -> list:
 	"""Returns a parsed list of signals from specified columns in the
 	columns.json file."""
 
@@ -23,7 +23,7 @@ def get_signal_list(sensor, component=None):
 	else:
 		return list(json_columns['sensors'][sensor][component])
 
-def check_access():
+def check_access() -> None:
 	"""Check access to network drive with transmitted signal data. The
 	function assumes that the user is only connected to one network drive."""
 
@@ -46,7 +46,13 @@ def check_access():
 		sys.exit()
 
 
-def get_single_day_dir(network_location, sensor, year, month, date):
+def get_single_day_dir(
+						network_location:str,
+						sensor:str,
+						year:int,
+						month:int,
+						date:int
+					) -> str:
 	"""Get the directory location for a desired sensor at a desired date"""
 
 	return os.path.join(
@@ -56,20 +62,20 @@ def get_single_day_dir(network_location, sensor, year, month, date):
 						str(date).zfill(2)
 					)
 
-def get_file_list(file_dir):
+def get_file_list(file_dir:str) -> list:
 	try:
 		return os.listdir(file_dir)
 	except ValueError:
 		print('Either a list of files or file directory must be provided.')
 		sys.exit('Adjust user-specified input.')
 
-def concatenate_files(file_dir,
-					cols=None,
-					index_col=None,
-					chunksize=None,
-					filter_operation=True,
-					faulty_data=[]
-				):
+def concatenate_files(file_dir:str,
+					cols:list=None,
+					index_col:str=None,
+					chunksize:int=None,
+					filter_operation:bool=True,
+					faulty_data:list=[]
+				) -> pd.DataFrame:
 	"""Concatenate dataframes from imported csv.gz-format."""
 
 	dfs = [] # list for storing dataframes to be concatenated
@@ -98,7 +104,7 @@ def concatenate_files(file_dir,
 							usecols=cols,
 							index_col=index_col,
 							parse_dates=['time'],
-							date_parser=date_parser,
+							date_parser=_date_parser,
 							chunksize=chunksize,
 							error_bad_lines=True)
 
@@ -125,7 +131,11 @@ def concatenate_files(file_dir,
 	else: ignore_index = False # keep indexing if time is index column
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
 
-def get_startpath(network_location,sensor=None,training_period=[None]*3):
+def get_startpath(
+					network_location:str,
+					sensor:str=None,
+					training_period:list=[None]*3
+				) -> str:
 	""""Return string with starting directory path based on desired data
 	resolution."""
 
@@ -137,14 +147,14 @@ def get_startpath(network_location,sensor=None,training_period=[None]*3):
 	return startpath
 
 def get_data(
-				root_dir,
-				cols,
-				index_col=None,
-				chunksize=None,
-				filter_operation=False,
-				faulty_data=[],
-				verbose=True
-			):
+				root_dir:str,
+				cols:list,
+				index_col:str=None,
+				chunksize:int=None,
+				filter_operation:bool=False,
+				faulty_data:list=[],
+				verbose:bool=True
+			) -> pd.DataFrame:
 	"""Retrieve a concatenated dataframe with all data from the given root
 	directory."""
 
@@ -182,15 +192,14 @@ def get_data(
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
 
 def get_and_store_data(
-						root_dir,
-						cols,
-						index_col=None,
-						chunksize=None,
-						filter_operation=False,
-						file_suffix=None,
-						faulty_data=[],
-						verbose=True
-					):
+						root_dir:str,
+						cols:list,
+						index_col:str=None,
+						chunksize:int=None,
+						filter_operation:bool=False,
+						faulty_data:list=[],
+						verbose:bool=True
+					) -> pd.DataFrame:
 	"""Description."""
 
 	data = get_data(
@@ -221,12 +230,14 @@ def concatenate_dataframes(dfs,index_col=None):
 	else: ignore_index = False
 	return pd.concat(dfs,axis=0,ignore_index=ignore_index)
 
-def all_equal(list, val):
-	"""Returns boolean value corresponding to all values in a list array being equal"""
+def all_equal(values:list, val:unspecified) -> bool:
+	"""Returns boolean value corresponding to all values in a list array being
+	equal."""
 
 	return all(elem == val for elem in list)
 
-def get_datetime(filename):
+
+def get_datetime(filename:str) -> datetime.time:
 	"""Returns a datetime.time() object from a filename in known format."""
 
 	time_string = filename[:filename.rfind('_')]
@@ -236,35 +247,31 @@ def get_datetime(filename):
 	day = int(time_string[6:])
 	return datetime.datetime(year=year, month=month, day=day).time()
 
-def to_datetime(time_string, format='%Y-%m-%d %H:%M:%S.%f'):
+def to_datetime(time_string:str, format:str='%Y-%m-%d %H:%M:%S.%f'
+			) -> datetime.time:
 	"""Returns a datetime.time() object from a string in known format."""
 
 	return datetime.datetime.strptime(time_string, format).time()
 
-def df_plot(df, values):
-	"""Plots a dataframe through the matplotlib library."""
+	remove_faulty_data(1,)
 
-	df.filter(values).plot()
-	plt.show()
-
-def remove_faulty_data(df, start, end, filename):
+def remove_faulty_data(df:pd.DataFrame, start:str, end:str, filename:str
+					) -> pd.DataFrame:
 	"""Removes faulty data at a known time interval specified through a
 	starting time and ending time. The input time values can either be in a
 	known string format or as datetime.time() objects."""
 
-	if(type(start) == str):
-		start = to_datetime(start)
-	if(type(end) == str):
-		end = to_datetime(end)
+	if(type(start) == str): start = to_datetime(start)
+	if(type(end) == str): end = to_datetime(end)
 
 	# Remove faulty data from df:
 	# (Using end time before start time excludes the interval in-between)
 	df_filtered = df.between_time(
-		start_time=end,
-		end_time=start,
-		include_start=False,
-		include_end=False
-	)
+									start_time=end,
+									end_time=start,
+									include_start=False,
+									include_end=False
+								)
 	# Number of deleted rows due to faulty data:
 	n_deleted_rows = df.shape[0] - df_filtered.shape[0]
 	print(
@@ -272,7 +279,8 @@ def remove_faulty_data(df, start, end, filename):
 		f"succesfully removed from '{filename}'.")
 	return df_filtered
 
-def get_progress_bar(range_max, bar_desc=None):
+def get_progress_bar(range_max:int,bar_desc:str=None
+				) -> progressbar.ProgressBar:
 	""""Returns an object representing a progress bar according to the
 	progressbar module."""
 	if bar_desc:
@@ -281,7 +289,7 @@ def get_progress_bar(range_max, bar_desc=None):
 		widgets=[progressbar.Bar('=','[',']'),' ',progressbar.Percentage()])
 
 
-date_parser = lambda time: pd.to_datetime(time, format='%Y-%m-%d %H:%M:%S.%f')
+_date_parser = lambda time: pd.to_datetime(time,format='%Y-%m-%d %H:%M:%S.%f')
 """Parser to convert string object to datetime object when reading csv-files
 using pandas."""
 
