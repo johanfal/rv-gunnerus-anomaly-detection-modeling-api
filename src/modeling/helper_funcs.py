@@ -47,7 +47,7 @@ def transform(
                 data:pd.DataFrame,
                 training_pct:float=0.8,
                 scaler_type:str='minmax'
-            ) -> [sklearn.preprocessing.scaler, pd.DataFrame]:
+            ) -> ['sklearn.preprocessing.scaler', pd.DataFrame]:
     """Transforms a given set of data to normalized sets of training and
     testing data. The transformed values are returned as two dataframes,
     representing the training data and testing data, respectively."""
@@ -82,7 +82,7 @@ def transform(
                     "but can not be above 1.0.")
     else: return scaler, df_train
 
-def get_scaler(scaler_type:str='minmax') -> sklearn.preprocessing.scaler:
+def get_scaler(scaler_type:str='minmax') -> 'sklearn.preprocessing.scaler':
     """Normalize data based on a desired scaler. Default supported scalers are
     MinMaxScaler() and StandardScaler(). StandardScaler() is used if the data
     is known to have a normal distribution, while the MinMaxScaler() can be
@@ -133,11 +133,11 @@ def get_df_hat(df:pd.DataFrame,y_hat:np.ndarray,prediction_cols:list=None
 
 def inverse_transform_dataframe(
                                 df:pd.DataFrame,
-                                scaler:sklearn.preprocessing.scaler
+                                scaler:'sklearn.preprocessing.scaler'
                             ) -> pd.DataFrame:
     """Description."""
     itf_arr = scaler.inverse_transform(df)
-    itf_df = pd.DataFrame()
+    itf_df = pd.DataFrame(index=df.index)
     for i in range(df.columns.__len__()):
         itf_df[df.columns[i]] = [row[i] for row in itf_arr]
 
@@ -194,26 +194,36 @@ def get_modelstring(prefix:str='model',**properties) -> str:
         modelstring = modelstring + f"_{str(key)}-{arg}"
     return modelstring
 
-def get_anomaly_range(df_loss:pd.DataFrame,threshold:float,neighbors:int=0
+def get_anomaly_range(df_loss:pd.DataFrame,threshold:float,neighborhood:int=0
                     ) -> pd.DataFrame:
     """Description"""
+    
     df_bool = df_loss > threshold
-    return _check_neighboring_bools(df_bool,neighbors=neighbors)
+    return _check_neighboring_bools(df_bool,neighborhood=neighborhood)
 
-def _check_neighboring_bools(df_bool:pd.DataFrame,neighbors:int=0
+def _check_neighboring_bools(df_bool:pd.DataFrame,neighborhood:int=0
                         ) -> pd.DataFrame:
-    """Checks if the neighborhood on each side of a boolean True value is also
+    """Checks if the neighborhood surrounding a boolean True value is also
     True. If not, the boolean value is changed to False. The function helps
     remove false outliers which will otherwise trigger unnwanted anomalies.
-    The input variable 'neighbors' defines the number of values to include in
-    the neighborhood of each timestep. If neighbors=n, timestep t will result
-    in a neighborhood containing values t-n, t-n+1,...,t,...,t+n-1,t+n, thus
-    yielding a neighborhood of 2n+1 elements (including t itself)."""
+    The input variable 'neighborhood' defines the number of values to include
+    in the neighborhood of each timestep. If neighborhood=2n, timestep t will
+    result in a neighborhood containing values t-n, t-n+1,...,t,...,t+n-1,t+n,
+    thus yielding a neighborhood of 2n+1 elements (including t itself). If
+    desired neighborhood size is odd with neighborhood=2n+1, the function will
+    include an extra comparison value at a later timestep, resulting in the
+    values t-n,...,t,...t+n+1."""
+
     df_neighborhood = pd.DataFrame(df_bool.values)
-    for i in range(1, neighbors+1):
-        df_neighborhood[f'{i}'] = df_bool.shift(-i,fill_value=False).values
+    for i in range(1, int(neighborhood/2)+1):
+        df_neighborhood[f'-{i}'] = df_bool.shift(-i,fill_value=False).values
         df_neighborhood[f'+{i}'] = df_bool.shift(i,fill_value=False).values
+
+    if neighborhood % 2: # if desired neighborhood size is odd
+        j = int((neighborhood+1)/2) # odd addition added as a positive shift
+        df_neighborhood[f'+{j}']=df_bool.shift(j,fill_value=False).values
     return df_neighborhood.all(axis='columns').values
+
 
 def get_faulty(
                 root_dir:str,
@@ -226,7 +236,7 @@ def get_faulty(
                 action_parameters:list=[True]*3,
                 scaler_type:str='minmax',
                 output_cols:list=None,
-            ) -> [pd.DataFrame,np.array,sklearn.preprocessing.scaler]:
+            ) -> [pd.DataFrame,np.array,'sklearn.preprocessing.scaler']:
     """Description. Returns a complete dataframe in the format expected by the
     program, as well as the transformed, reshaped data alongside the
     transformation scaler, which is used for inverse transformation."""
@@ -308,13 +318,80 @@ def get_mae(absolute_error:dict) -> dict:
         mae[key] = np.mean(values)
     return mae
 
-def get_thresholds(absolute_error:dict, threshold_pct:float) -> dict:
-    """Description."""
+def _get_uniform_thresholds(absolute_error:dict, threshold_pct:float) -> dict:
+    """Calculate threshold values for all prediction columns based on a single
+    desired threshold value."""
 
     thresholds = {}
     for key, values in absolute_error.items():
         thresholds[key] = np.percentile(values, threshold_pct)
     return thresholds
+
+def _get_variable_thresholds(absolute_error:dict,threshold_pct:list) -> dict:
+    """Calculate threshold values for all prediction columns based on a list
+    of desired threshold values."""
+
+    thresholds = {}
+    counter = 0
+    for key, values in absolute_error.items():
+        thresholds[key] = np.percentile(values, threshold_pct[counter])
+        counter += 1
+    return thresholds
+
+def get_thresholds(absolute_error:dict,threshold_pct) -> dict:
+    if type(threshold_pct) is list:
+        return _get_variable_thresholds(absolute_error,threshold_pct)
+    else:
+        return _get_uniform_thresholds(absolute_error,threshold_pct)
+
+def get_performance(
+                    df_pred_filtered:pd.DataFrame,
+                    df_real_filtered:pd.DataFrame,
+                    absolute_error:dict,
+                    thresholds:dict,
+                    anomaly_neighborhood:int=1
+                ) -> dict:
+    """DESCRIPTION."""
+
+    performance = {}
+    counter = 0
+    # Iterate through each predicted column and add performance metrics:
+    for col in df_pred_filtered.columns:
+        performance[col] = pd.DataFrame(index=df_pred_filtered.index)
+        performance[col]['pred'] = df_pred_filtered[col]
+        performance[col]['real'] = df_real_filtered[col]
+        ############################################################################
+        ############################################################################
+        # EOD: Error occured below :) Hope you slept well and is on it early today :D
+        ############################################################################
+        ############################################################################
+        performance[col]['loss'] = absolute_error[col]
+        performance[col]['anom'] = get_anomaly_range(
+                                                        performance[col].loss,
+                                                        thresholds[col],
+                                                        anomaly_neighborhood
+                                                )
+        counter += 1
+        false_anomalies = get_false_anomalies(
+                                                performance[col].loss,
+                                                performance[col].anom,
+                                                thresholds[col]
+                                            )
+        for false_anom in false_anomalies:
+            performance[col].drop(false_anom, inplace=True)
+    return performance
+
+
+def get_false_anomalies(
+                        df_loss:pd.DataFrame,
+                        df_true_anomalies:pd.DataFrame,
+                        threshold:float
+                    ) -> list:
+    """DESCRIPTION."""
+    all_anomalies = df_loss.index[df_loss > threshold].tolist()
+    true_anomalies = df_true_anomalies.index[df_true_anomalies==True].tolist()
+    # Return false anomalies as intersection between all and true anomalies:
+    return np.setdiff1d(all_anomalies,true_anomalies)
 
 # def get_rmse(df_pred,df_real) -> dict:
 #     """Calculate root mean square error (RMSE) as the square root of MSE for
