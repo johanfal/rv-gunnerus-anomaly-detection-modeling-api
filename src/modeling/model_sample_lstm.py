@@ -7,8 +7,8 @@ from src.funcs import memory as mem
 from src.modeling import helper_funcs as fnc
 from tensorflow import keras
 
-def create(input_shape:tuple,verbose:bool=True,**parameters) -> keras.model:
-    """Description. The function takes a variable number of keyword arguments,
+def create(input_shape:tuple,verbose:bool=True,**parameters) -> 'keras.model':
+    """DESCRIPTION. The function takes a variable number of keyword arguments,
     which can be used to build the model. Change verbose to false to suppress
     model summary printout."""
 
@@ -16,6 +16,7 @@ def create(input_shape:tuple,verbose:bool=True,**parameters) -> keras.model:
 
     # Create variables based on the desired keyword arguments used to build
     # the model. These must be changed in accordance with the **parameters.
+    # (It is optional to use keyword arguments through **parameters.)
     UNITS = parameters['UNITS']
     OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
 
@@ -39,17 +40,18 @@ def create(input_shape:tuple,verbose:bool=True,**parameters) -> keras.model:
     return model
 
 def train(
-            model:keras.model,
+            model:'keras.model',
             X_train:pd.DataFrame,
             y_train:pd.DataFrame,
             X_test:np.ndarray,
             y_test:np.ndarray,
             **parameters
-        ) -> [keras.model, list]:
-    """Description."""
+        ) -> ['keras.model', list]:
+    """DESCRIPTION."""
 
     # Create variables based on the desired keyword arguments used to train
     # the model. These must be changed in accordance with the **parameters.
+    # (It is optional to use keyword arguments through **parameters.)
     EPOCHS = parameters['EPOCHS']
     BATCH_SIZE = parameters['BATCH_SIZE']
 
@@ -63,17 +65,18 @@ def train(
     return model, history.history
 
 def test(
-            model:keras.model,
+            model:'keras.model',
             history:list,
             df_test:pd.DataFrame,
             X_test:np.ndarray,
             threshold_pct:float,
-            pred_scaler:sklearn.preprocessing.scaler,
-            test_scaler:sklearn.preprocessing.scaler=None,
+            anomaly_neighborhood:int,
+            pred_scaler:'sklearn.preprocessing.scaler',
+            test_scaler:'sklearn.preprocessing.scaler'=None,
             prediction_cols:list=None,
             **parameters
     ) -> pd.DataFrame:
-    """Description."""
+    """DESCRIPTION."""
     # THRESHOLD_PCT = parameters['THRESHOLD_PCT']
     # ANOMALY_NEIGHBORS = parameters['ANOMALY_NEIGHBORS']
 
@@ -93,24 +96,35 @@ def test(
     df_hat_inv = fnc.inverse_transform_dataframe(df_hat, pred_scaler)
     df_test_inv = fnc.inverse_transform_dataframe(df_test, test_scaler)
 
-    # Filter prediction columns(remove?):
+    # Filter prediction columns:
     df_hat_filtered = df_hat_inv.filter(prediction_cols)
     df_test_filtered = df_test_inv.filter(prediction_cols)
 
     # Calculate absolute error for each predicted timestep:
     absolute_error = fnc.get_absolute_error(df_hat_filtered, df_test_filtered)
 
-
-    thresholds = fnc.get_thresholds(absolute_error)
+    # Calculate thresholds based on an anomaly distribution percentage:
+    # (If threshold_pct is 70 %, the threshold value will be the minimum of
+    # the 30 % highest values. Threshold_pct can either be passed as a single,
+    # uniform value, or as a list of percentages for each predicted column.)
+    thresholds = fnc.get_thresholds(absolute_error, threshold_pct)
 
     # Calculate mean absolute error (MAE) for each predicted column:
     mae = fnc.get_mae(absolute_error)
     # Calculate root mean square error (RMSE) for each predicted column:
     # rmse = fnc.get_rmse(df_hat_filtered, df_test_filtered)
 
-    performance = None
+    performance = fnc.get_performance(
+                                    df_pred_filtered=df_hat_filtered,
+                                    df_real_filtered=df_test_filtered,
+                                    absolute_error=absolute_error,
+                                    thresholds=thresholds,
+                                    anomaly_neighborhood=anomaly_neighborhood
+                                )
 
-    return performance
+    # Necessary parameters:
+    # col, absolute_error, thresholds, df_hat_filtered, df_test_filtered,
+    return performance, absolute_error, thresholds
 
 if __name__ == '__main__':
     import sys, os

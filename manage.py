@@ -4,13 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import mean_squared_error
 
 
 from src.funcs import file_management as filemag
 from src.funcs import memory as mem
 from src.modeling import helper_funcs as fnc
-from src.modeling import lstm_sample as sample_model
+from src.modeling import model_sample_lstm as sample_model
+
+# Module import of your model, initially located in src/modeling/model.py:
+from src.modeling import model as model # modify this if you change filename
 
 # Check if the user is connected to network drive containing data
 network_dir = filemag.check_access() # supported for Windows OS
@@ -62,11 +64,10 @@ TRAINING_PERIOD =[
 INDEX_COL = 'time' # index column
 CHUNKSIZE = None # None: the model will load all data simultaneously
 
-NORMAL_DIST = False # True if data has a normal distribution (affects transform function)
 DO_TRANSFORM = False
 DO_RESHAPE = False
 DO_MODELING = False
-DO_TESTING = False
+DO_TESTING = True
 GET_FAULTY = True
 
 ##########################################################################
@@ -87,7 +88,9 @@ startpath = filemag.get_startpath(network_dir, SENSORS, TRAINING_PERIOD)
 # Data parameters
 TRAINING_PCT=0.8
 TIMESTEPS=30
-SCALER_TYPE = 'minmax'
+SCALER_TYPE = 'minmax' # currently supported scalers: 'minmax', 'standard'
+# (The scaler type affects data transformation. To add custom scalers, alter
+# the get_scaler() function in src/modeling/helper_funcs.py as indicated.)
 
 # Model parameters
 UNITS = 64
@@ -98,6 +101,11 @@ DROPOUT_RATE = 0.2
 EPOCHS = 3
 BATCH_SIZE = 128
 
+# Testing parameters
+THRESHOLD_PCT = 99.95 # percentage of data not deemed anomalies
+ANOMALY_NEIGHBORHOOD = 17   # necessary number of consecutive values exceeding
+# 4: (17,4), 6: (13,0), 10: (7,0), 15: (2,0), 16: (1,0), 17:(0,0)
+                            # a threshold to trigger an anomaly
 # Get a dataframe containing desired data in desired formats
 if CREATE_DATA_FILE:
     data = filemag.get_and_store_data(
@@ -213,7 +221,7 @@ if GET_FAULTY:
 
     f_startpath = filemag.get_startpath(network_dir,SENSORS,F_INTERVAL)
 
-    [faulty_data, faulty_reshaped, faulty_scaler]  = fnc.get_faulty(
+    [df_faulty, X_faulty, scaler_faulty]  = fnc.get_faulty(
                                         root_dir=f_startpath,
                                         cols=cols,
                                         timesteps=TIMESTEPS,
@@ -226,28 +234,68 @@ if GET_FAULTY:
                                         output_cols=PREDICTION_COLS
                                     )
 
-if DO_TESTING:
-    raise sys.exit('Under development.')
-    # performance = sample_model.test_model(model,history)
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
 
-# Need to inverse transform data
-y_hat = model.predict(X_test)
-y_hat_test = model.predict(X_test)
-y_hat_faulty = model.predict(faulty_reshaped)
+if DO_TESTING:
+    # Predict values (use either testing or faulty data for this purpose):
+    [performance,absolute_error,thresholds] = sample_model.test(
+                                    model,
+                                    history,
+                                    df_test=df_test,
+                                    X_test=X_test,
+                                    threshold_pct=THRESHOLD_PCT,
+                                    anomaly_neighborhood=ANOMALY_NEIGHBORHOOD,
+                                    pred_scaler=scaler,
+                                    prediction_cols=PREDICTION_COLS
+                                )
+    [performance,absolute_error,thresholds] = sample_model.test(
+                                    model,
+                                    history,
+                                    df_test=df_faulty,
+                                    X_test=X_faulty,
+                                    threshold_pct=THRESHOLD_PCT,
+                                    anomaly_neighborhood=ANOMALY_NEIGHBORHOOD,
+                                    pred_scaler=scaler,
+                                    test_scaler=scaler_faulty,
+                                    prediction_cols=PREDICTION_COLS
+                                )
+
+VISUALIZE_RESULTS = True
+if VISUALIZE_RESULTS:
+    sample_model.visualize(
+                            performance=performance,
+                            history=history,
+                            thresholds=thresholds,
+                            absolute_error=absolute_error
+                        )
+
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+
+y_hat = model.predict(X_test) # 
+y_hat_test = model.predict(X_test) # 
+y_hat_faulty = model.predict(X_faulty) # 
 
 # Create a dataframe inserting predicted values into relevant columns:
-df_test = df_test[TIMESTEPS:] # remove first timestep
-df_hat = fnc.get_df_pred(
-                            df_test,
-                            y_hat,
-                            prediction_cols=PREDICTION_COLS
-                    )
+df_hat = fnc.get_df_pred( # 
+                            df_test, # 
+                            y_hat, # 
+                            prediction_cols=PREDICTION_COLS # 
+                    ) # 
 df_hat_inv = fnc.inverse_transform_dataframe(df_hat, scaler)
 df_test_inv = fnc.inverse_transform_dataframe(df_test, scaler)
 
-df_hat_filtered = df_hat_inv.filter(PREDICTION_COLS)
-df_test_filtered = df_test_inv[TIMESTEPS:].filter(PREDICTION_COLS)
-
+df_hat_filtered = df_hat_inv.filter(PREDICTION_COLS) # 
+df_test_filtered = df_test_inv[TIMESTEPS:].filter(PREDICTION_COLS) # 
+from sklearn.metrics import mean_squared_error
 rmse_ind = []
 mae_ind = []
 for col in df_hat_filtered:
@@ -269,6 +317,13 @@ if False: # plotting
     plt.show()
 THRESHOLD_PERCENTILE = 99.95
 NEIGHBORS = 10
+
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+
+
 threshold = np.percentile(mae_loss, THRESHOLD_PERCENTILE)
 below_threshold = mae_loss[mae_loss < threshold]
 above_threshold = mae_loss[mae_loss > threshold]
@@ -319,14 +374,6 @@ for col in PREDICTION_COLS:
 
     col_counter += 1
 
-print("Hello world!")
-
-##########################################################################
-########################### VISUALIZE RESULTS ############################
-##########################################################################
-
-
 # Stuff to do
-# - Make sure that the different functions work for training_pct = 1.0
 # - Check how to model.predict with faulty data - does it have to be transformed and/or reshaped?
 # - Add store from 'batch_create_files.py' to 'manage.py' for reshaped data
