@@ -230,7 +230,7 @@ def concatenate_dataframes(dfs,index_col=None):
 	else: ignore_index = False
 	return pd.concat(dfs,axis=0,ignore_index=ignore_index)
 
-def all_equal(values:list, val:unspecified) -> bool:
+def all_equal(values:list, val) -> bool:
 	"""Returns boolean value corresponding to all values in a list array being
 	equal."""
 

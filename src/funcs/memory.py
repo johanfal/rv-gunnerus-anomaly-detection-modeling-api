@@ -1,6 +1,7 @@
 import pickle
 import sys, os
 from datetime import datetime
+from tensorflow import keras
 from tensorflow.keras.models import model_from_json
 from tensorflow.keras.models import load_model
 
@@ -63,7 +64,7 @@ def delete(
     return
 
 def save_model(
-                model:keras.model,
+                model:'tensorflow.keras.model',
                 history:list,
                 model_dir:str='src/datastore/models',
                 file_prefix:str=None,
@@ -90,7 +91,7 @@ def save_model(
     return
 
 def load_from_list_of_models(model_dir:str='src/datastore/models/'
-                        ) -> [keras.model, list]:
+                        ) -> ['tensorflow.keras.model', list]:
     """Description."""
 
     model_dir = _check_dir_string(model_dir)
