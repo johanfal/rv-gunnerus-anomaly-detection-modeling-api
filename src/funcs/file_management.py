@@ -12,16 +12,14 @@ import win32file
 from src.funcs import memory as mem
 
 
-def get_signal_list(sensor:str, component:str=None) -> list:
-	"""Returns a parsed list of signals from specified columns in the
-	columns.json file."""
+def get_signal_list(sensor:str, component:str=None) -> dict:
+	"""Returns a dictionary of signals and units from specified columns in the
+	'columns.json' file."""
 
 	with open('columns.json', 'r') as f:
 		json_columns = json.load(f)
-	if not component:
-		return list(json_columns['sensors'][sensor])
-	else:
-		return list(json_columns['sensors'][sensor][component])
+	if not component: return json_columns['sensors'][sensor]
+	else: return json_columns['sensors'][sensor][component]
 
 def check_access() -> None:
 	"""Check access to network drive with transmitted signal data. The
