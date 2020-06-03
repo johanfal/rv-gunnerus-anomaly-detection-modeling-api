@@ -1,10 +1,12 @@
 import pickle
 import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+import seaborn as sns
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from src.funcs import file_management as filemag
 from src.funcs import memory as mem
@@ -381,7 +383,6 @@ def get_performance(
             performance[col].drop(false_anom, inplace=True)
     return performance
 
-
 def get_false_anomalies(
                         df_loss:pd.DataFrame,
                         df_true_anomalies:pd.DataFrame,
@@ -408,6 +409,80 @@ def get_false_anomalies(
 #             rmse[col] = np.sqrt(mean_squared_error(df_real[col],df_pred[col]))
 
 #     return rmse
+
+def add_plt_properties(
+                        xlabel:str,
+                        ylabel:str,
+                        title:str,
+                        x_fontsize:int=14,
+                        y_fontsize:int=14,
+                        t_fontsize:int=20
+                    ) -> None:
+    plt.xlabel(xlabel, fontsize=x_fontsize)
+    plt.ylabel(ylabel, fontsize=y_fontsize)
+    plt.title(title, fontsize=t_fontsize)
+    plt.legend(fontsize=14)
+    plt.get_current_fig_manager().window.state('zoomed')
+
+def get_distplot(
+                    signal:str,dist:pd.DataFrame,threshold:int,unit:str=None
+            ) -> None:
+    """DESCRIPTION."""
+    if unit is not None: label = f'Absolute error ({unit})'
+    else: label = 'Absolute_error'
+    below_t = dist[dist < threshold]
+    above_t = dist[dist > threshold]
+
+    f, axes = plt.subplots(2,2)
+    plt.title(
+        "Distribution plots for the absolute prediction error for "\
+            f"'{signal}' with threshold: {threshold:.2f}"
+        )
+    # Plot 1 - complete distribution
+    sns.distplot(
+            dist,kde=True,kde_kws={'label':'KDE','color':'black'},ax=axes[0,0]
+        )
+    axes[0,0].axvline(
+                        threshold, label=f'Threshold: {threshold:.2f}',
+                        linestyle='dashed', linewidth=2, color='red'
+                    )
+    axes[0,0].set_xlabel(label)
+    axes[0,0].legend()
+    axes[0,0].set_title(f'Complete distribution (n: {dist.shape[0]})')
+
+    # Plot 2 - combined distribution
+    sns.distplot(below_t, kde=True, color='green', ax=axes[0,1],
+                    kde_kws={'label':f'Above (n: {below_t.shape[0]})'})
+    sns.distplot(above_t, kde=True, color='red', ax=axes[0,1],
+                    kde_kws={'label':f'Above (n: {above_t.shape[0]})'})
+    axes[0,1].axvline(
+                        threshold, label=f'Threshold: {threshold:.2f}',
+                        linestyle='dashed', linewidth=2, color='red'
+                    )
+    axes[0,1].set_xlabel(label)
+    axes[0,1].legend()
+    axes[0,1].set_title(f'Combined distributions')
+
+    # Plot 3 - distribution below threshold
+    sns.distplot(
+                    below_t,kde=True,color='green',
+                    kde_kws={'label':'KDE','color':'black'},ax=axes[1,0]
+    )
+    axes[1,0].set_xlabel(label)
+    axes[1,0].legend()
+    axes[1,0].set_title(f'Below threshold (n: {below_t.shape[0]})')
+
+    # Plot 4 - distribution above threshold
+    sns.distplot(
+                    above_t,kde=True,color='red',
+                    kde_kws={'label':'KDE','color':'black'},ax=axes[1,1]
+            )
+    axes[1,1].set_xlabel(label)
+    axes[1,1].legend()
+    axes[1,1].set_title(f'Above threshold (n: {above_t.shape[0]})')
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == '__main__':
     import sys, os
