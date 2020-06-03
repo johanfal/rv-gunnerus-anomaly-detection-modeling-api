@@ -162,6 +162,7 @@ def get_data(
 	if verbose:
 		print(f"Retrieving data from '{root_dir}'...")
 		n_files = 0 # number of files concatenated
+		n_dirs = 1
 	# Iterate through file hierarchy based on the given root directory
 	for root, dirs, files in os.walk(root_dir):
 
@@ -176,8 +177,8 @@ def get_data(
 		if files != []:
 			if verbose:
 				print(f"Current directory: {root} ({files.__len__()} files)."\
-					f" {n_files} of {n_dirs} files appended from parent "\
-					f"directory.", end='\r')
+					f" {n_files} of {n_dirs} directories appended from "\
+					f"parent directory.", end='\r')
 				n_files += 1
 			# Concatenate files in given directory based on specified options
 			df = concatenate_files(file_dir=root,
@@ -188,7 +189,11 @@ def get_data(
 									faulty_data=faulty_data
 								)
 			dfs.append(df) # Append current dataframe to list of dataframes
-
+			if verbose and n_files == n_dirs:
+				print(f"Current directory: {root} ({files.__len__()} files)."\
+					f" {n_dirs} of {n_dirs} directories appended from "\
+					f"parent directory.", end='\r')
+	if verbose: print("")
 	return concatenate_dataframes(dfs, index_col) # concatenate dataframes
 
 def get_and_store_data(
@@ -197,6 +202,7 @@ def get_and_store_data(
 						index_col:str=None,
 						chunksize:int=None,
 						filter_operation:bool=False,
+						file_suffix='store',
 						faulty_data:list=[],
 						verbose:bool=True
 					) -> pd.DataFrame:
