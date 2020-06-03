@@ -194,36 +194,42 @@ def get_modelstring(prefix:str='model',**properties) -> str:
         modelstring = modelstring + f"_{str(key)}-{arg}"
     return modelstring
 
-def get_anomaly_range(df_loss:pd.DataFrame,threshold:float,neighborhood:int=0
+def get_anomaly_range(df_loss:pd.DataFrame,threshold:float,size:int=0
                     ) -> pd.DataFrame:
     """Description"""
     
     df_bool = df_loss > threshold
-    return _check_neighboring_bools(df_bool,neighborhood=neighborhood)
+    return _check_neighboring_bools(df_bool,size=size).values
 
-def _check_neighboring_bools(df_bool:pd.DataFrame,neighborhood:int=0
+def _check_neighboring_bools(df_bool:pd.DataFrame,size:int=0
                         ) -> pd.DataFrame:
     """Checks if the neighborhood surrounding a boolean True value is also
     True. If not, the boolean value is changed to False. The function helps
     remove false outliers which will otherwise trigger unnwanted anomalies.
-    The input variable 'neighborhood' defines the number of values to include
-    in the neighborhood of each timestep. If neighborhood=2n, timestep t will
+    The input variable 'size' defines the number of elements to include
+    in the neighborhood of each timestep. If size=2n, timestep t will
     result in a neighborhood containing values t-n, t-n+1,...,t,...,t+n-1,t+n,
     thus yielding a neighborhood of 2n+1 elements (including t itself). If
     desired neighborhood size is odd with neighborhood=2n+1, the function will
     include an extra comparison value at a later timestep, resulting in the
     values t-n,...,t,...t+n+1."""
 
+    df_nh = _get_neighborhood(df_bool, size)
+    df_center_anoms = df_nh.all(axis='columns')
+    df_center_anoms_nh = _get_neighborhood(df_center_anoms, size)
+
+    return df_center_anoms_nh.any(axis='columns')
+
+
+def _get_neighborhood(df_bool:pd.DataFrame,neighborhood:int=0) -> pd.DataFrame:
     df_neighborhood = pd.DataFrame(df_bool.values)
     for i in range(1, int(neighborhood/2)+1):
-        df_neighborhood[f'-{i}'] = df_bool.shift(-i,fill_value=False).values
-        df_neighborhood[f'+{i}'] = df_bool.shift(i,fill_value=False).values
-
-    if neighborhood % 2: # if desired neighborhood size is odd
-        j = int((neighborhood+1)/2) # odd addition added as a positive shift
-        df_neighborhood[f'+{j}']=df_bool.shift(j,fill_value=False).values
-    return df_neighborhood.all(axis='columns').values
-
+        df_neighborhood[f'-{i}'] = df_bool.shift(-i, fill_value=False).values
+        df_neighborhood[f'+{i}'] = df_bool.shift(i, fill_value=False).values
+    if neighborhood % 2:
+        j = int((neighborhood+1)/2)
+        df_neighborhood[f'+{j}'] = df_bool.shift(j,fill_value=False).values
+    return df_neighborhood
 
 def get_faulty(
                 root_dir:str,
@@ -253,7 +259,6 @@ def get_faulty(
                                             file_suffix=faulty_suffix,
                                             faulty_data=[]
                                         )
-        mem.store(complete_data,file_suffix=faulty_suffix)
     else:
         complete_data = mem.load(file_suffix=faulty_suffix)
 
@@ -290,7 +295,7 @@ def get_faulty(
                                         file_prefix='reshaped',
                                         file_suffix=faulty_suffix
                                     )
-    return complete_data, X_reshaped, scaler
+    return df_faulty, X_reshaped, scaler
 
 def get_absolute_error(df_real:pd.DataFrame,df_pred:pd.DataFrame) -> dict:
     """Calculate absolute error for each predicted timestep."""
@@ -360,11 +365,6 @@ def get_performance(
         performance[col] = pd.DataFrame(index=df_pred_filtered.index)
         performance[col]['pred'] = df_pred_filtered[col]
         performance[col]['real'] = df_real_filtered[col]
-        ############################################################################
-        ############################################################################
-        # EOD: Error occured below :) Hope you slept well and is on it early today :D
-        ############################################################################
-        ############################################################################
         performance[col]['loss'] = absolute_error[col]
         performance[col]['anom'] = get_anomaly_range(
                                                         performance[col].loss,
