@@ -14,6 +14,29 @@ from src.modeling import model_sample_lstm as sample_model
 # Module import of your model, initially located in src/modeling/model.py:
 from src.modeling import model as model # modify this if you change filename
 
+if True: # testing faulty
+    from datetime import datetime
+    result = mem.load(file_prefix='faulty_testing_results')
+    for key,res in result.items():
+        p = res[0]['ME1_ExhaustTemp1']
+        tot_anoms = p.anom.sum()
+        tot_vals = p.shape[0]
+        p = p.loc[p.index[10500:12800]]
+        start_marker = p.index.get_loc('2019-11-21 10:50:16')
+        end_marker = p.index.get_loc('2019-11-21 10:56:33.000')
+        start_marker = datetime.strptime(str(p.index[start_marker]), '%Y-%m-%d %H:%M:%S')
+        end_marker = datetime.strptime(str(p.index[end_marker]), '%Y-%m-%d %H:%M:%S')
+        plt.plot(p.index, p.loss, label='loss')
+        plt.plot(p.index, p.loss.max()*p.anom, label='anom')
+        plt.plot(p.index, [res[2]['ME1_ExhaustTemp1']]*p.shape[0], label=f"threshold: {res[2]['ME1_ExhaustTemp1']:.2f}")
+        plt.axvspan(start_marker, end_marker, color='red', alpha=0.3)
+        sum1 = p.anom.sum()
+        vals = p.shape[0]
+        plt.title(key + f" (anoms/vals: {sum1}/{vals})\n(tot anoms/vals: {tot_anoms}/{tot_vals})")
+        plt.legend()
+        plt.get_current_fig_manager().window.state('zoomed')
+        plt.show()
+    sys.exit()
 # Check if the user is connected to network drive containing data
 network_dir = filemag.check_access() # supported for Windows OS
 
@@ -104,7 +127,7 @@ BATCH_SIZE = 128
 # Testing parameters
 THRESHOLD_PCT = 99.95 # percentage of data not deemed anomalies
 ANOMALY_NEIGHBORHOOD = 17   # necessary number of consecutive values exceeding
-# 4: (17,4), 6: (13,0), 10: (7,0), 15: (2,0), 16: (1,0), 17:(0,0)
+# 4: (17,4), 6: (13,0), 10: (7,0), 15: (2,0), 16: (1,0), 17:(0,0) (T_PCT: 99.95)
                             # a threshold to trigger an anomaly
 # Get a dataframe containing desired data in desired formats
 if CREATE_DATA_FILE:
@@ -216,7 +239,7 @@ if GET_FAULTY:
     F_INTERVAL =[
         2019, # year (None: all available data will be used)
         11, # month (None: all available data in given year will be used)
-        None # day (None: all available data in given month will be used)
+        21 # day (None: all available data in given month will be used)
     ]
 
     f_startpath = filemag.get_startpath(network_dir,SENSORS,F_INTERVAL)
@@ -242,17 +265,19 @@ if GET_FAULTY:
 
 if DO_TESTING:
     # Predict values (use either testing or faulty data for this purpose):
-    [performance,absolute_error,thresholds] = sample_model.test(
-                                    model,
-                                    history,
-                                    df_test=df_test,
-                                    X_test=X_test,
-                                    threshold_pct=THRESHOLD_PCT,
-                                    anomaly_neighborhood=ANOMALY_NEIGHBORHOOD,
-                                    pred_scaler=scaler,
-                                    prediction_cols=PREDICTION_COLS
-                                )
-    [performance,absolute_error,thresholds] = sample_model.test(
+    # [performance,absolute_error,thresholds] = sample_model.test(
+    #                                 model,
+    #                                 history,
+    #                                 df_test=df_test,
+    #                                 X_test=X_test,
+    #                                 threshold_pct=THRESHOLD_PCT,
+    #                                 anomaly_neighborhood=ANOMALY_NEIGHBORHOOD,
+    #                                 pred_scaler=scaler,
+    #                                 prediction_cols=PREDICTION_COLS
+    #                             )
+
+
+    [f_performance,f_absolute_error,f_thresholds] = sample_model.test(
                                     model,
                                     history,
                                     df_test=df_faulty,
@@ -365,6 +390,7 @@ for col in PREDICTION_COLS:
     false_anomalies = np.setdiff1d(all_anomalies, true_anomalies)
     for anom in false_anomalies:
         performance.drop(anom, inplace=True)
+
 
     plt.plot(performance.index, performance[f'loss_{col}'], label=f'loss_{col}')
     plt.plot(performance.index, performance[f'loss_{col}'].max()* performance[f'anomaly_{col}_neigh'], label=f'anomaly_{col}')

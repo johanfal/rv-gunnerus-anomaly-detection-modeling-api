@@ -103,28 +103,92 @@ def test(
     # Calculate absolute error for each predicted timestep:
     absolute_error = fnc.get_absolute_error(df_hat_filtered, df_test_filtered)
 
-    # Calculate thresholds based on an anomaly distribution percentage:
-    # (If threshold_pct is 70 %, the threshold value will be the minimum of
-    # the 30 % highest values. Threshold_pct can either be passed as a single,
-    # uniform value, or as a list of percentages for each predicted column.)
-    thresholds = fnc.get_thresholds(absolute_error, threshold_pct)
 
-    # Calculate mean absolute error (MAE) for each predicted column:
-    mae = fnc.get_mae(absolute_error)
-    # Calculate root mean square error (RMSE) for each predicted column:
-    # rmse = fnc.get_rmse(df_hat_filtered, df_test_filtered)
 
-    performance = fnc.get_performance(
-                                    df_pred_filtered=df_hat_filtered,
-                                    df_real_filtered=df_test_filtered,
-                                    absolute_error=absolute_error,
-                                    thresholds=thresholds,
-                                    anomaly_neighborhood=anomaly_neighborhood
-                                )
 
+    threshold_pcts = [
+        # 90,
+        # 91,
+        # 92,
+        # 93,
+        # 94,
+        95,
+        96,
+        97,
+        # 97.10,
+        # 97.20,
+        # 97.25,
+        # 97.30,
+        # 97.40,
+        # 97.50,
+        # 97.60,
+        # 97.70,
+        # 97.75,
+        # 97.80,
+        # 97.90,
+        98,
+        # 98.25,
+        # 98.5,
+        # 98.75,
+        99,
+    ]
+    neighbors = [
+        # 5,
+        # 10,
+        # 12,
+        # 14,
+        15,
+        # 16,
+        # 17,
+        # 18,
+        # 19,
+        20,
+        25,
+        30,
+        35,
+        40
+    ]
+    result = {}
+    for pct in threshold_pcts:
+        for neighbor in neighbors:
+            print(f"pct: {pct}. neighborhood: {neighbor}.")
+
+            # Calculate thresholds based on an anomaly distribution percentage:
+            # (If threshold_pct is 70 %, the threshold value will be the minimum of
+            # the 30 % highest values. Threshold_pct can either be passed as a single,
+            # uniform value, or as a list of percentages for each predicted column.)
+            # thresholds = fnc.get_thresholds(absolute_error, threshold_pct)
+            thresholds = fnc.get_thresholds(absolute_error, pct)
+
+            # Calculate mean absolute error (MAE) for each predicted column:
+            mae = fnc.get_mae(absolute_error)
+            # Calculate root mean square error (RMSE) for each predicted column:
+            # rmse = fnc.get_rmse(df_hat_filtered, df_test_filtered)
+            performance = fnc.get_performance(
+                                            df_pred_filtered=df_hat_filtered,
+                                            df_real_filtered=df_test_filtered,
+                                            absolute_error=absolute_error,
+                                            thresholds=thresholds,
+                                            # anomaly_neighborhood=anomaly_neighborhood
+                                            anomaly_neighborhood=neighbor
+                                        )
+            result[f"pct-{pct}_neg-{neighbor}"] = [performance,absolute_error,thresholds]
+    mem.store(result,file_prefix='faulty_testing_results')
+    import sys
+    sys.exit("Done.")
     # Necessary parameters:
     # col, absolute_error, thresholds, df_hat_filtered, df_test_filtered,
     return performance, absolute_error, thresholds
+
+def visualize(performance:dict,history:list, **kwargs) -> None:
+
+    absolute_error = kwargs['absolute_error']
+    thresholds = kwargs['thresholds']
+
+
+    for key, df in performance.items():
+        print("hello!")
+    return
 
 if __name__ == '__main__':
     import sys, os
