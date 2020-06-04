@@ -93,8 +93,8 @@ BATCH_SIZE = 128
 # Testing parameters
 THRESHOLD_PCT = 97.25 # percentage of data not deemed anomalies
 ANOMALY_NEIGHBORHOOD = 17   # necessary number of consecutive values exceeding
-# 4: (17,4), 6: (13,0), 10: (7,0), 15: (2,0), 16: (1,0), 17:(0,0) (T_PCT: 99.95)
                             # a threshold to trigger an anomaly
+
 # Get a dataframe containing desired data in desired formats
 if CREATE_DATA_FILE:
     data = filemag.get_and_store_data(
@@ -144,16 +144,10 @@ if DO_RESHAPE:
                 file_suffix=FILE_SUFFIX
             )
 
-else: # laod stored, reshaped data
-    # ! REMOVE this, it is temporary to work with specific filenames
-    LOAD_TS = ''
-    if TIMESTEPS in [5,10,15,20,25,30]:
-        LOAD_TS = f'_ts-{str(TIMESTEPS).zfill(2)}'
-    RESHAPED_SUFFIX = FILE_SUFFIX + LOAD_TS
-    # ! REMOVE above
+else: # load stored, reshaped data
     [X_train, y_train, X_test, y_test] = mem.load(
                                                 file_prefix='reshaped',
-                                                file_suffix=RESHAPED_SUFFIX
+                                                file_suffix=FILE_SUFFIX
                                             )
     TIMESTEPS = X_train.shape[1] # redefine based on actual reshaped data
 
@@ -196,16 +190,16 @@ else: # laod stored, reshaped data
 if GET_FAULTY:
     F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
-        False, # Create faulty data file
-        False, # Tranform data
-        False, # Reshape data
+        True, # Create faulty data file
+        True, # Tranform data
+        True, # Reshape data
     ]
     # Choose time interval of data selection (remember that the interval with
     # simulated error must be included):
     F_INTERVAL =[
         2019, # year (None: all available data will be used)
         11, # month (None: all available data in given year will be used)
-        21 # day (None: all available data in given month will be used)
+        None # day (None: all available data in given month will be used)
     ]
 
     f_startpath = filemag.get_startpath(network_dir,SENSORS,F_INTERVAL)
@@ -223,20 +217,26 @@ if GET_FAULTY:
                                         output_cols=PREDICTION_COLS
                                     )
 
+
+USE_TESTING_DATA = False # test and visualize with testing data
+USE_FAULTY_DATA = True # test and visualize with faulty data
+
 if DO_TESTING:
     # Predict values (use either testing or faulty data for this purpose):
-    # [performance,absolute_error,thresholds] = sample_model.test(
-    #                                 model,
-    #                                 history,
-    #                                 df_test=df_test,
-    #                                 X_test=X_test,
-    #                                 threshold_pct=THRESHOLD_PCT,
-    #                                 anomaly_neighborhood=ANOMALY_NEIGHBORHOOD,
-    #                                 pred_scaler=scaler,
-    #                                 prediction_cols=PREDICTION_COLS
-    #                             )
+    if USE_TESTING_DATA:
+        [performance,absolute_error,thresholds] = sample_model.test(
+                                    model,
+                                    history,
+                                    df_test=df_test,
+                                    X_test=X_test,
+                                    threshold_pct=THRESHOLD_PCT,
+                                    anomaly_neighborhood=ANOMALY_NEIGHBORHOOD,
+                                    pred_scaler=scaler,
+                                    prediction_cols=PREDICTION_COLS
+                                )
 
-    [f_performance,f_absolute_error,f_thresholds] = sample_model.test(
+    if USE_FAULTY_DATA:
+        [f_performance,f_absolute_error,f_thresholds] = sample_model.test(
                                     model,
                                     history,
                                     df_test=df_faulty,
@@ -249,17 +249,20 @@ if DO_TESTING:
                                 )
 
 if VISUALIZE_RESULTS:
-    # sample_model.visualize(
-    #                         performance=performance,
-    #                         history=history,
-    #                         thresholds=thresholds,
-    #                         absolute_error=absolute_error,
-    #                         units=signals,
-    #                     )
-    sample_model.visualize(
-                            performance=f_performance,
-                            history=history,
-                            thresholds=f_thresholds,
-                            absolute_error=f_absolute_error,
-                            units=signals,
-                        )
+    # Create plots (use either testing or faulty data for this purpose):
+    if USE_TESTING_DATA:
+        sample_model.visualize(
+                                performance=performance,
+                                history=history,
+                                thresholds=thresholds,
+                                absolute_error=absolute_error,
+                                units=signals,
+                            )
+    if USE_FAULTY_DATA:
+        sample_model.visualize(
+                                performance=f_performance,
+                                history=history,
+                                thresholds=f_thresholds,
+                                absolute_error=f_absolute_error,
+                                units=signals,
+                            )
