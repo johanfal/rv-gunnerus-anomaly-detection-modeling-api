@@ -1,15 +1,11 @@
-import datetime
-import json
-import os
-import sys
-import time
+import datetime, json, os, sys, time
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import progressbar
 import win32file
 
-from src.funcs import memory as mem
+from src.api import memory as mem
 
 
 def get_signal_list(sensor:str, component:str=None) -> dict:

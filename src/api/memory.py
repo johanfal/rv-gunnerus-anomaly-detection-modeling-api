@@ -1,9 +1,9 @@
-import pickle
-import sys, os
+import os, pickle, sys
 from datetime import datetime
+
 from tensorflow import keras
-from tensorflow.keras.models import model_from_json
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import load_model, model_from_json
+
 
 def store(
             obj,
@@ -27,7 +27,7 @@ def load(
             load_dir:str='src/datastore/',
             file_prefix:str=None,
             file_suffix:str=None,
-            verbose:bool=False
+            verbose:bool=True
     ):
     """Description."""
     if file_prefix is None: file_prefix = 'store'
@@ -65,7 +65,7 @@ def delete(
 
 def save_model(
                 model:'tensorflow.keras.model',
-                history:list,
+                history:dict,
                 model_dir:str='src/datastore/models',
                 file_prefix:str=None,
                 modelstring:str='unspecificed'
@@ -110,7 +110,7 @@ def load_from_list_of_models(model_dir:str='src/datastore/models/'
             file_select[n] = model
             print(f"{n}: {model}")
 
-        print('-'*max(models).__len__())
+        print('-'*(max(file_select.values()).__len__()+3))
         selector = input('Choose model number to load: ')
         try:
             selector = int(selector)
@@ -138,7 +138,7 @@ def load_from_list_of_models(model_dir:str='src/datastore/models/'
         file_prefix=history_file,
         verbose=False
     )
-    print(f"Model and history with tag '{name_split[1]}' succesfully " \
+    print(f"Model and history with tag '{model_file}' succesfully " \
         f"loaded from '{model_dir}'.")
     return model, history
 

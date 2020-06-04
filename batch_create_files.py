@@ -1,10 +1,10 @@
 import sys
 
 # Custom module imports
-from src.funcs import file_management as filemag
-from src.funcs import memory as mem
+from src.api import file_management as filemag
+from src.api import memory as mem
+from src.api import modeling_funcs as mfnc
 from src.modeling import lstm_sample as sample_model
-from src.modeling import helper_funcs as fnc
 
 
 SENSORS = 'NogvaEngine'
@@ -146,7 +146,7 @@ for i in range(len(new_files)):
         if data == False:
             continue
 
-    [scaler, df_train, df_test] = fnc.transform(
+    [scaler, df_train, df_test] = mfnc.transform(
                                                     data,
                                                     TRAINING_PCT,
                                                     normal_dist=NORMAL_DIST
@@ -158,7 +158,7 @@ for i in range(len(new_files)):
             )
     for ts in tss:
         print('Reshaping data with timesteps: ',ts)
-        [X_train, y_train, X_test, y_test] = fnc.reshape(
+        [X_train, y_train, X_test, y_test] = mfnc.reshape(
                                                     df_train,
                                                     df_test,
                                                     output_cols=PREDICTION_COLS,
