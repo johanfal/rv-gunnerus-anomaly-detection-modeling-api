@@ -1,12 +1,24 @@
+#-----------------------------------------------------------------------------
+# File: modeling_funcs.py
+# Purpose:
+#   
+#
+# Created by: Johan Fredrik Alvsaker
+# Last modified: 
+#-----------------------------------------------------------------------------
+# Standard library:
 import pickle, sys
 
+# External modules:
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
+# Local API:
 from src.api import file_management as filemag
 from src.api import memory as mem
+#-----------------------------------------------------------------------------
 
 def reshape(
             df_train:pd.DataFrame,

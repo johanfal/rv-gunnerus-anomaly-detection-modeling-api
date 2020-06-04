@@ -1,12 +1,23 @@
+#-----------------------------------------------------------------------------
+# File: file_management.py
+# Purpose:
+#   
+#
+# Created by: Johan Fredrik Alvsaker
+# Last modified: 
+#-----------------------------------------------------------------------------
+# Standard library:
 import datetime, json, os, sys, time
 
+# External modules:
 import matplotlib.pyplot as plt
 import pandas as pd
 import progressbar
 import win32file
 
+# Local API:
 from src.api import memory as mem
-
+#-----------------------------------------------------------------------------
 
 def get_signal_list(sensor:str, component:str=None) -> dict:
 	"""Returns a dictionary of signals and units from specified columns in the

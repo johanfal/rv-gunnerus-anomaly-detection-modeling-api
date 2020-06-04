@@ -1,9 +1,19 @@
+#-----------------------------------------------------------------------------
+# File: memory.py
+# Purpose:
+#   
+#
+# Created by: Johan Fredrik Alvsaker
+# Last modified: 
+#-----------------------------------------------------------------------------
+# Standard library:
 import os, pickle, sys
 from datetime import datetime
 
+# External modules:
 from tensorflow import keras
 from tensorflow.keras.models import load_model, model_from_json
-
+#-----------------------------------------------------------------------------
 
 def store(
             obj,

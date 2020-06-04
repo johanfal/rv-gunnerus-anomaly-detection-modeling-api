@@ -1,41 +1,50 @@
+#-----------------------------------------------------------------------------
+# File: model_sample_lstm.py
+# Purpose:
+#   
+#
+# Created by: Johan Fredrik Alvsaker
+# Last modified: 
+#-----------------------------------------------------------------------------
+# Standard library:
 import os, pickle, sys
 
+# External modules:
 import numpy as np
 import pandas as pd
 from tensorflow import keras
 
+# Local API:
 from src.api import file_management as filemag
 from src.api import memory as mem
 from src.api import modeling_funcs as mfnc
 from src.api import plotting_funcs as pfnc
+#-----------------------------------------------------------------------------
 
 def create(input_shape:tuple,verbose:bool=True,**parameters) -> 'keras.model':
     """DESCRIPTION. The function takes a variable number of keyword arguments,
     which can be used to build the model. Change verbose to false to suppress
     model summary printout."""
 
-    model = keras.Sequential()
+    model = keras.Sequential() # instantiate a sequential model
 
     # Create variables based on the desired keyword arguments used to build
     # the model. These must be changed in accordance with the **parameters.
     # (It is optional to use keyword arguments through **parameters.)
-    UNITS = parameters['UNITS']
-    OPTIMIZER = 'adam'  # try out different optimizer (dynamic loss rate?)
+    UNITS = parameters['UNITS'] # DESCRIPTION
 
+    # DESCRIPTION
+    OPTIMIZER = 'adam' # DESCRIPTION
+
+    # DESCRIPTION
     model.add(keras.layers.LSTM(UNITS, input_shape=(input_shape)))
-    model.add(keras.layers.Dense(2))
-    # model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
-    # model.add(keras.layers.Dense(2, input_dim = X_train.shape[1]))
-    # model.add(keras.layers.RepeatVector(n=1)) # This was the last thing you changed, and it seemed to be working..
-    # # ! Is it possible to replace the hard-coded value of 1 with the shape of y_train, somehow?
-    # model.add(keras.layers.LSTM(UNITS, return_sequences=True))
-    # model.add(keras.layers.Dropout(rate=DROPOUT_RATE))
-    # # model.add(keras.layers.Dense(2))
-    # model.add(keras.layers.TimeDistributed(
-    # keras.layers.Dense(2)) # change this to use the shape of y_train
-    # )
 
+    # DESCRIPTION
+    model.add(keras.layers.Dense(2))
+
+    # DESCRIPTION
     model.compile(loss='mae', optimizer=OPTIMIZER)
+
     if verbose:
         model.summary() # optional printout of key model properties
 
@@ -54,9 +63,10 @@ def train(
     # Create variables based on the desired keyword arguments used to train
     # the model. These must be changed in accordance with the **parameters.
     # (It is optional to use keyword arguments through **parameters.)
-    EPOCHS = parameters['EPOCHS']
-    BATCH_SIZE = parameters['BATCH_SIZE']
+    EPOCHS = parameters['EPOCHS'] # DESCRIPTION
+    BATCH_SIZE = parameters['BATCH_SIZE'] # DESCRIPTION
 
+    # DESCRIPTION
     history = model.fit(X_train, y_train,
                     epochs=EPOCHS,
                     batch_size=BATCH_SIZE,
@@ -79,8 +89,6 @@ def test(
             **parameters
     ) -> pd.DataFrame:
     """DESCRIPTION."""
-    # THRESHOLD_PCT = parameters['THRESHOLD_PCT']
-    # ANOMALY_NEIGHBORS = parameters['ANOMALY_NEIGHBORS']
 
     if test_scaler is None: test_scaler=pred_scaler
 
@@ -134,7 +142,7 @@ def visualize(performance:dict,history:dict, **kwargs) -> None:
     absolute_error = kwargs['absolute_error']
     thresholds = kwargs['thresholds']
     units = kwargs['units']
-    exclude_plots=True
+
     # Training history:
     pfnc.get_historyplt(history)
 

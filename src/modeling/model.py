@@ -10,13 +10,13 @@
 # Standard library:
 import os, pickle, sys
 
-# External packages:
+# External modules:
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from tensorflow import keras
 
-# Local source:
+# Local API:
 from src.api import file_management as filemag
 from src.api import memory as mem
 from src.api import modeling_funcs as mfnc

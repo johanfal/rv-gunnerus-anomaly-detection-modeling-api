@@ -1,10 +1,20 @@
+#-----------------------------------------------------------------------------
+# File: plotting_funcs.py
+# Purpose:
+#   
+#
+# Created by: Johan Fredrik Alvsaker
+# Last modified: 
+#-----------------------------------------------------------------------------
+# Standard library:
 import copy
 
+# External modules:
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
+#-----------------------------------------------------------------------------
 
 def get_historyplt(
                     history:dict,
@@ -55,7 +65,7 @@ def get_distplt(
         "Distribution plots for the absolute prediction error for "\
             f"'{signal}' with threshold: {threshold:.2f}"
         )
-    # Plot 1 - complete distribution -----------------------------------------
+    # Plot 1 - complete distribution:
     sns.distplot(
             dist,kde=True,kde_kws={'label':'KDE','color':'black'},ax=axes[0,0]
         )
@@ -67,7 +77,7 @@ def get_distplt(
     axes[0,0].legend()
     axes[0,0].set_title(f'Complete distribution (n: {dist.shape[0]})')
 
-    # Plot 2 - combined distribution -----------------------------------------
+    # Plot 2 - combined distribution:
     sns.distplot(below_t, kde=True, color='green', ax=axes[0,1],
                     kde_kws={'label':f'Above (n: {below_t.shape[0]})'})
     sns.distplot(above_t, kde=True, color='red', ax=axes[0,1],
@@ -80,7 +90,7 @@ def get_distplt(
     axes[0,1].legend()
     axes[0,1].set_title(f'Combined distributions')
 
-    # Plot 3 - distribution below threshold ----------------------------------
+    # Plot 3 - distribution below threshold:
     sns.distplot(
                     below_t,kde=True,color='green',
                     kde_kws={'label':'KDE','color':'black'},ax=axes[1,0]
@@ -89,7 +99,7 @@ def get_distplt(
     axes[1,0].legend()
     axes[1,0].set_title(f'Below threshold (n: {below_t.shape[0]})')
 
-    # Plot 4 - distribution above threshold ----------------------------------
+    # Plot 4 - distribution above threshold:
     sns.distplot(
                     above_t,kde=True,color='red',
                     kde_kws={'label':'KDE','color':'black'},ax=axes[1,1]
@@ -98,7 +108,7 @@ def get_distplt(
     axes[1,1].legend()
     axes[1,1].set_title(f'Above threshold (n: {above_t.shape[0]})')
 
-    # Render plots -----------------------------------------------------------
+    # Render plots:
     plt.tight_layout()
     plt.show()
     return
@@ -141,7 +151,8 @@ def get_anomalyplt(
     anomalies are plotted as single points corresponding with the state value
     at the given anomaly timestep. """
     anom_dps = real[anoms==True]
-    plt.scatter(anom_dps.index, anom_dps, color='red', label=f'anomaly (n:{anom_dps.count()})')
+    plt.scatter(anom_dps.index, anom_dps, color='red',
+                label=f'anomaly (n:{anom_dps.count()})')
     plt.plot(real, label=f'state values (n:{real.count()})')
     plt.legend()
     plt.show()
@@ -153,13 +164,24 @@ def _add_plt_properties(
                         title:str,
                         x_fontsize:int=14,
                         y_fontsize:int=14,
-                        t_fontsize:int=20
+                        t_fontsize:int=20,
+                        l_fontsize:int=14,
                     ) -> None:
-    plt.xlabel(xlabel, fontsize=x_fontsize)
-    plt.ylabel(ylabel, fontsize=y_fontsize)
-    plt.title(title, fontsize=t_fontsize)
-    plt.legend(fontsize=14)
-    plt.get_current_fig_manager().window.state('zoomed')
+    """Add simple plot properties for readability and presentation."""
+
+    try:
+        # Force fullscreen (working on windows):
+        plt.get_current_fig_manager().window.state('zoomed')
+        plt.xlabel(xlabel, fontsize=x_fontsize)
+        plt.ylabel(ylabel, fontsize=y_fontsize)
+        plt.title(title, fontsize=t_fontsize)
+        plt.legend(fontsize=l_fontsize)
+    except:
+        print('Forced fullscreen not working as intended.')
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.legend()
     return
 
 #-----------------------------------------------------------------------------

@@ -1,10 +1,21 @@
+#-----------------------------------------------------------------------------
+# File: manage.py
+# Purpose:
+#   
+#
+# Created by: Johan Fredrik Alvsaker
+# Last modified: 
+#-----------------------------------------------------------------------------
+# Standard library:
 import sys
 
+# External modules:
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
+# Local API:
 from src.api import file_management as filemag
 from src.api import memory as mem
 from src.api import modeling_funcs as mfnc
@@ -12,6 +23,8 @@ from src.modeling import model_sample_lstm as sample_model
 
 # Module import of your model, initially located in src/modeling/model.py:
 from src.modeling import model as model # modify this if you change filename
+
+#-----------------------------------------------------------------------------
 
 # Check if the user is connected to network drive containing data
 network_dir = filemag.check_access() # supported for Windows OS
