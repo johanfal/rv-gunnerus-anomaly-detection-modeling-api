@@ -1,15 +1,16 @@
-import pickle
-import sys, os
+import os, pickle, sys
 from datetime import datetime
-from tensorflow.keras.models import model_from_json
-from tensorflow.keras.models import load_model
+
+from tensorflow import keras
+from tensorflow.keras.models import load_model, model_from_json
+
 
 def store(
             obj,
-            store_dir='src/datastore/',
-            file_prefix=None,
-            file_suffix=None
-        ):
+            store_dir:str='src/datastore/',
+            file_prefix:str=None,
+            file_suffix:str=None
+        ) -> None:
     """Description."""
 
     if file_prefix is None: file_prefix = 'store'
@@ -22,7 +23,12 @@ def store(
     print(f"Object succesfully stored as '{filename}.pckl' in '{store_dir}'")
     return
 
-def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None, verbose=False):
+def load(
+            load_dir:str='src/datastore/',
+            file_prefix:str=None,
+            file_suffix:str=None,
+            verbose:bool=True
+    ):
     """Description."""
     if file_prefix is None: file_prefix = 'store'
     load_dir = _check_dir_string(load_dir)
@@ -38,7 +44,11 @@ def load(load_dir='src/datastore/',file_prefix=None,file_suffix=None, verbose=Fa
     except:
         sys.exit(f"{filename}.pckl not found in '{load_dir}'.")
 
-def delete(delete_dir='src/datastore/',file_prefix=None, file_suffix=None):
+def delete(
+            delete_dir:str='src/datastore/',
+            file_prefix:str=None,
+            file_suffix:str=None
+        ) -> None:
     """Description."""
 
     if file_prefix is None: file_prefix = 'store'
@@ -48,18 +58,18 @@ def delete(delete_dir='src/datastore/',file_prefix=None, file_suffix=None):
     print(path)
     try:
         os.remove(path)
-        print(f"Object stored in '{filename}.pckl' deleted from '{delete_dir}'")
+        print(f"File '{filename}.pckl' deleted from '{delete_dir}'")
     except:
         print(f"File '{filename}.pckl' not found in '{delete_dir}'.")
     return
 
 def save_model(
-                model,
-                history,
-                model_dir='src/datastore/models',
-                file_prefix=None,
-                modelstring='unspecificed'
-            ):
+                model:'tensorflow.keras.model',
+                history:dict,
+                model_dir:str='src/datastore/models',
+                file_prefix:str=None,
+                modelstring:str='unspecificed'
+            ) -> None:
     """Saves a Keras model to a file named after important properties and
     tuning parameters of the model. Each saved file receives a unique name
     based on the time of save. Thus, no existing models are overwritten."""
@@ -80,7 +90,8 @@ def save_model(
             f"'{model_dir}'.")
     return
 
-def load_from_list_of_models(model_dir='src/datastore/models/'):
+def load_from_list_of_models(model_dir:str='src/datastore/models/'
+                        ) -> ['tensorflow.keras.model', list]:
     """Description."""
 
     model_dir = _check_dir_string(model_dir)
@@ -99,7 +110,7 @@ def load_from_list_of_models(model_dir='src/datastore/models/'):
             file_select[n] = model
             print(f"{n}: {model}")
 
-        print('-'*max(models).__len__())
+        print('-'*(max(file_select.values()).__len__()+3))
         selector = input('Choose model number to load: ')
         try:
             selector = int(selector)
@@ -127,16 +138,16 @@ def load_from_list_of_models(model_dir='src/datastore/models/'):
         file_prefix=history_file,
         verbose=False
     )
-    print(f"Model and history with tag '{name_split[1]}' succesfully " \
+    print(f"Model and history with tag '{model_file}' succesfully " \
         f"loaded from '{model_dir}'.")
     return model, history
 
-def _check_dir_string(dir_string):
+def _check_dir_string(dir_string:str) -> str:
     """Ensure that a directory location is given as an appendable string."""
     if dir_string[-1] != '/': dir_string=dir_string + '/'
     return dir_string
 
-def _get_filename(prefix, suffix=None):
+def _get_filename(prefix:str, suffix:str=None) -> str:
     """Returns a filename string based on a prefix and suffix property. If
     suffix is not declared, only the prefix value is used."""
 
