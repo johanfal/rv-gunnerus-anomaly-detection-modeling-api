@@ -27,8 +27,8 @@ from src.modeling import model as model # modify this if you change filename
 #-----------------------------------------------------------------------------
 
 # Check if the user is connected to network drive containing data
-network_dir = filemag.check_access() # supported for Windows OS
-
+# network_dir = filemag.check_access() # supported for Windows OS
+network_dir = 'Z'
 # User inputs ----------------------------------------------------------------
 # Sensor(s) and component(s):
 SENSORS = 'NogvaEngine'
@@ -43,7 +43,7 @@ PREDICTION_COLS = [
 # File management ------------------------------------------------------------
 CREATE_DATA_FILE = False # if False, data will be pickle-loaded from file
 FILTER_OPERATION = True  # If True, only in-operation data will be used
-FILE_SUFFIX = 'complete_data'
+FILE_SUFFIX = '2019'
 REMOVE_FAULTY_DATA = True
 DELETE_STORED_FILES = None  # ! Not implemented functionality for this
 
@@ -95,17 +95,17 @@ SCALER_TYPE = 'minmax' # currently supported scalers: 'minmax', 'standard'
 # the get_scaler() function in src/modeling/helper_funcs.py as indicated.)
 
 # Model parameters
-UNITS = 256
+UNITS = 32
 RETURN_SEQUENCES = True
 DROPOUT_RATE = 0.2
 
 # Training parameters
-EPOCHS = 60
-BATCH_SIZE = 128
+EPOCHS = 20
+BATCH_SIZE = 60
 
 # Testing parameters
 THRESHOLD_PCT = 97.25 # percentage of data not deemed anomalies
-ANOMALY_NEIGHBORHOOD = 17   # necessary number of consecutive values exceeding
+ANOMALY_NEIGHBORHOOD = 0   # necessary number of consecutive values exceeding
                             # a threshold to trigger an anomaly
 
 # Get a dataframe containing desired data in desired formats
@@ -203,9 +203,9 @@ else: # load stored, reshaped data
 if GET_FAULTY:
     F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
-        True, # Create faulty data file
-        True, # Tranform data
-        True, # Reshape data
+        False, # Create faulty data file
+        False, # Tranform data
+        False, # Reshape data
     ]
     # Choose time interval of data selection (remember that the interval with
     # simulated error must be included):
