@@ -13,6 +13,9 @@ import os, pickle, sys
 import numpy as np
 import pandas as pd
 from tensorflow import keras
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras import layers
 
 # Local API:
 from src.api import file_management as filemag
@@ -33,17 +36,19 @@ def create(input_shape:tuple,verbose:bool=True,**parameters) -> 'keras.model':
     # (It is optional to use keyword arguments through **parameters.)
     UNITS = parameters['UNITS'] # DESCRIPTION
 
-    # DESCRIPTION
-    OPTIMIZER = 'adam' # DESCRIPTION
 
     # DESCRIPTION
-    model.add(keras.layers.LSTM(UNITS, input_shape=(input_shape)))
+    model.add(layers.LSTM(UNITS, input_shape=(input_shape)))
+    # model.add(layers.LSTM(UNITS, input_shape=(input_shape)))
+    # model.add(layers.Dropout(0.2))
+    # model.add(layers.Activation('softmax'))
+    # model.add(keras.layers.Dense(12, activation='relu'))
 
-    # DESCRIPTION
+    model.add(layers.Dropout(0.2))
     model.add(keras.layers.Dense(2))
 
     # DESCRIPTION
-    model.compile(loss='mae', optimizer=OPTIMIZER)
+    model.compile(loss='mae', optimizer='adam', metrics=['accuracy'])
 
     if verbose:
         model.summary() # optional printout of key model properties
@@ -66,13 +71,17 @@ def train(
     EPOCHS = parameters['EPOCHS'] # DESCRIPTION
     BATCH_SIZE = parameters['BATCH_SIZE'] # DESCRIPTION
 
+
+    checkpoint = ModelCheckpoint('model.h5', verbose=1, monitor='val_loss',save_best_only=True, mode='auto')
+
     # DESCRIPTION
     history = model.fit(X_train, y_train,
                     epochs=EPOCHS,
                     batch_size=BATCH_SIZE,
                     validation_data=(X_test, y_test),
                     verbose=1,
-                    shuffle=False
+                    shuffle=False,
+                    callbacks=[checkpoint]
                 )
     return model, history.history
 
