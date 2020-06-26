@@ -3,7 +3,10 @@
 # Purpose: the modeling API is run from the manage.py file, meaning that the
 # actual 'model.py' file is called here. In addition to being the execution
 # file, 'manage.py' also handles administrative variables, mostly related to
-# file and memory management.
+# file and memory management. By default, the file uses the user-made model
+# file found in 'modeling/model.py'. If it is desired to use the example model
+# instead, replace all calls to the model module with the example_model
+# module.
 #
 # Created by: Johan Fredrik Alvsaker
 # Last modified: 26.6.2020
@@ -21,7 +24,7 @@ import seaborn as sns
 from src.api import file_management as filemag
 from src.api import memory as mem
 from src.api import modeling_funcs as mfnc
-from src.modeling import model_sample_lstm as sample_model
+from src.modeling import model_example_lstm as example_model
 
 # Module import of your model, initially located in src/modeling/model.py:
 from src.modeling import model as model  # modify this if you change filename
@@ -133,8 +136,8 @@ SCALER_TYPE = 'minmax'  # currently supported scalers: 'minmax', 'standard'
 # the get_scaler() function in src/modeling/helper_funcs.py as indicated.)
 
 # Model parameters:
-UNITS = 32
-RETURN_SEQUENCES = True
+UNITS_LSTM = 32
+UNITS_DENSE = 2
 DROPOUT_RATE = 0.2
 
 # Training parameters:
@@ -234,13 +237,15 @@ else:  # load stored, reshaped data:
 # Create and test model and save resulting model and history files:
 if DO_MODELING:
     # Create model:
-    model = sample_model.create(
+    model = example_model.create(
         X_train.shape[1:],
-        UNITS=UNITS
+        UNITS_LSTM=UNITS_LSTM,
+        UNITS_DENSE=UNITS_DENSE,
+        DROPOUT_RATE=DROPOUT_RATE,
     )
 
     # Train model:
-    [model, history] = sample_model.train(
+    [model, history] = example_model.train(
         model,
         X_train,
         y_train,
@@ -254,7 +259,7 @@ if DO_MODELING:
     modelstring = mfnc.get_modelstring(
         ep=EPOCHS,
         ts=TIMESTEPS,
-        un=UNITS,
+        un=UNITS_LSTM,
         bs=BATCH_SIZE
     )
 
@@ -309,7 +314,7 @@ if GET_FAULTY:
 if DO_TESTING:
     # Predict values using testing data:
     if USE_TESTING_DATA:
-        [performance, absolute_error, thresholds] = sample_model.test(
+        [performance, absolute_error, thresholds] = example_model.test(
             model,
             history,
             df_test=df_test,
@@ -322,7 +327,7 @@ if DO_TESTING:
 
     # Predict values using faulty data:
     if USE_FAULTY_DATA:
-        [f_performance, f_absolute_error, f_thresholds] = sample_model.test(
+        [f_performance, f_absolute_error, f_thresholds] = example_model.test(
             model,
             history,
             df_test=df_faulty,
@@ -340,7 +345,7 @@ if DO_TESTING:
 if VISUALIZE_RESULTS:
     # Create plots using testing data:
     if USE_TESTING_DATA:
-        sample_model.visualize(
+        example_model.visualize(
             performance=performance,
             history=history,
             thresholds=thresholds,
@@ -350,7 +355,7 @@ if VISUALIZE_RESULTS:
 
     # Create plots using faulty data:
     if USE_FAULTY_DATA:
-        sample_model.visualize(
+        example_model.visualize(
             performance=f_performance,
             history=history,
             thresholds=f_thresholds,
