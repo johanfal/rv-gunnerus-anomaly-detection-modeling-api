@@ -54,7 +54,7 @@ INDEX_COL = 'time'
 # ------------------------------------------------- Sensor(s) and component(s)
 # File management ------------------------------------------------------------
 # Declare the file suffix used throughout the execution:
-FILE_SUFFIX = '2019'
+FILE_SUFFIX = 'nov_2019'
 # (If new files are created during execution, these files will receive the
 # designated file suffix from above. If files are loaded during execution,
 # the program will look for files with the file suffix from above.)
@@ -227,44 +227,46 @@ else:  # load stored, reshaped data:
 # --------------------- Filtering, processing, transforming and reshaping data
 # Modeling and training ------------------------------------------------------
 
-    # Create and test model and save resulting model and history files:
-    if DO_MODELING:
-        # Create model:
-        model = sample_model.create(
-            X_train.shape[1:],
-            UNITS=UNITS
-        )
+# Create and test model and save resulting model and history files:
+if DO_MODELING:
+    # Create model:
+    model = sample_model.create(
+        X_train.shape[1:],
+        UNITS=UNITS
+    )
 
-        # Train model:
-        [model, history] = sample_model.train(
-            model,
-            X_train,
-            y_train,
-            X_test,
-            y_test,
-            EPOCHS=EPOCHS,
-            BATCH_SIZE=BATCH_SIZE
-        )
+    # Train model:
+    [model, history] = sample_model.train(
+        model,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        EPOCHS=EPOCHS,
+        BATCH_SIZE=BATCH_SIZE
+    )
 
-        # Retrieve unique filename:
-        modelstring = mfnc.get_modelstring(
-            ep=EPOCHS,
-            ts=TIMESTEPS,
-            un=UNITS,
-            bs=BATCH_SIZE
-        )
+    # Retrieve unique filename:
+    modelstring = mfnc.get_modelstring(
+        ep=EPOCHS,
+        ts=TIMESTEPS,
+        un=UNITS,
+        bs=BATCH_SIZE
+    )
 
-        # Save model and corresponding performance history:
-        mem.save_model(
-            model,
-            history,
-            file_prefix='model',
-            modelstring=modelstring
-        )
-    else:  # load stored model
-        model, history = mem.load_from_list_of_models()
+    # Save model and corresponding performance history:
+    mem.save_model(
+        model,
+        history,
+        file_prefix='model',
+        modelstring=modelstring
+    )
+else:  # load stored model
+    model, history = mem.load_from_list_of_models()
+
 # ------------------------------------------------------ Modeling and training
 # Get faulty data ------------------------------------------------------------
+
 if GET_FAULTY:
     F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
