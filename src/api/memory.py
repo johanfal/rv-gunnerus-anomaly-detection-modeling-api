@@ -1,29 +1,35 @@
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # File: memory.py
-# Purpose:
-#   
+# Purpose: handle saving and loading of necessary files used by the program.
+# Filetypes supported include '.pckl' (Python's native object serializer)
+# and '.h5' (Keras model format).
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 
-#-----------------------------------------------------------------------------
+# Last modified: 26. june 2020
+# -----------------------------------------------------------------------------
 # Standard library:
-import os, pickle, sys
+import os
+import pickle
+import sys
 from datetime import datetime
 
 # External modules:
 from tensorflow import keras
 from tensorflow.keras.models import load_model, model_from_json
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
 
 def store(
-            obj,
-            store_dir:str='src/datastore/',
-            file_prefix:str=None,
-            file_suffix:str=None
-        ) -> None:
-    """Description."""
+    obj,
+    store_dir: str = 'src/datastore/',
+    file_prefix: str = None,
+    file_suffix: str = None
+) -> None:
+    """Store an object in a pickle file. If not specified, the directory will
+    be 'datastore' and 'file_prefix' will be 'store'."""
 
-    if file_prefix is None: file_prefix = 'store'
+    if file_prefix is None:
+        file_prefix = 'store'
     store_dir = _check_dir_string(store_dir)
     filename = _get_filename(file_prefix, file_suffix)
 
@@ -33,14 +39,17 @@ def store(
     print(f"Object succesfully stored as '{filename}.pckl' in '{store_dir}'")
     return
 
+
 def load(
-            load_dir:str='src/datastore/',
-            file_prefix:str=None,
-            file_suffix:str=None,
-            verbose:bool=True
-    ):
-    """Description."""
-    if file_prefix is None: file_prefix = 'store'
+    load_dir: str = 'src/datastore/',
+    file_prefix: str = None,
+    file_suffix: str = None,
+    verbose: bool = True
+) -> None:
+    """Load a pickle object from a designated directory. If not specified, the
+    directory will be 'datastore' and 'file_prefix' will be 'store'."""
+    if file_prefix is None:
+        file_prefix = 'store'
     load_dir = _check_dir_string(load_dir)
     filename = _get_filename(file_prefix, file_suffix)
 
@@ -49,19 +58,24 @@ def load(
         obj = pickle.load(f)
         f.close()
         if verbose:
-            print(f"Object succesfully loaded from '{filename}' in '{load_dir}'")
+            print(
+                "Object succesfully loaded from "
+                f"'{filename}' in '{load_dir}'")
         return obj
-    except:
+    except BaseException:
         sys.exit(f"{filename}.pckl not found in '{load_dir}'.")
 
-def delete(
-            delete_dir:str='src/datastore/',
-            file_prefix:str=None,
-            file_suffix:str=None
-        ) -> None:
-    """Description."""
 
-    if file_prefix is None: file_prefix = 'store'
+def delete(
+    delete_dir: str = 'src/datastore/',
+    file_prefix: str = None,
+    file_suffix: str = None
+) -> None:
+    """Delete a pickle file from a designated directory. If not specified, the
+    directory will be 'datastore' and 'file_prefix' will be 'store'."""
+
+    if file_prefix is None:
+        file_prefix = 'store'
     delete_dir = _check_dir_string(delete_dir)
     filename = _get_filename(file_prefix, file_suffix)
     path = f'{delete_dir}{filename}.pckl'
@@ -69,22 +83,24 @@ def delete(
     try:
         os.remove(path)
         print(f"File '{filename}.pckl' deleted from '{delete_dir}'")
-    except:
+    except BaseException:
         print(f"File '{filename}.pckl' not found in '{delete_dir}'.")
     return
 
+
 def save_model(
-                model:'tensorflow.keras.model',
-                history:dict,
-                model_dir:str='src/datastore/models',
-                file_prefix:str=None,
-                modelstring:str='unspecificed'
-            ) -> None:
+    model: 'tensorflow.keras.model',
+    history: dict,
+    model_dir: str = 'src/datastore/models',
+    file_prefix: str = None,
+    modelstring: str = 'unspecificed'
+) -> None:
     """Saves a Keras model to a file named after important properties and
     tuning parameters of the model. Each saved file receives a unique name
     based on the time of save. Thus, no existing models are overwritten."""
 
-    if file_prefix is None: file_prefix = 'model'
+    if file_prefix is None:
+        file_prefix = 'model'
     json_model = model.to_json()
     model_dir = _check_dir_string(model_dir)
     unique_time = datetime.now().strftime('%Y%m%d-%H%M')
@@ -93,16 +109,19 @@ def save_model(
     history_filename = f"{file_prefix}_{unique_time}_{modelstring}"
     path = f"{model_dir}{file_prefix}_{tag}"
     model.save(f"{path}.h5")
-    f = open(f"{model_dir}{file_prefix}_history_{tag}.pckl",'wb')
+    f = open(f"{model_dir}{file_prefix}_history_{tag}.pckl", 'wb')
     pickle.dump(history, f)
     f.close()
-    print(f"Model and history with tag '{tag}' succesfully stored in " \
-            f"'{model_dir}'.")
+    print(f"Model and history with tag '{tag}' succesfully stored in "
+          f"'{model_dir}'.")
     return
 
-def load_from_list_of_models(model_dir:str='src/datastore/models/'
-                        ) -> ['tensorflow.keras.model', list]:
-    """Description."""
+
+def load_from_list_of_models(model_dir: str = 'src/datastore/models/'
+                             ) -> ['tensorflow.keras.model', list]:
+    """Loads available models, by default in the 'datastore/models' directory,
+    and allows the user to input a model of choice through command line
+    interface."""
 
     model_dir = _check_dir_string(model_dir)
     models = os.listdir(model_dir)
@@ -112,21 +131,21 @@ def load_from_list_of_models(model_dir:str='src/datastore/models/'
         print(f"\n\nModels in '{model_dir}':'")
         for n in range(1, models.__len__() + 1):
             # Get current model without file extension:
-            model = os.path.splitext(models[n-1])[0]
+            model = os.path.splitext(models[n - 1])[0]
             if 'history' in model:
-                name_split = model.split('_history_',1)
+                name_split = model.split('_history_', 1)
                 histories['_'.join(name_split)] = model
                 continue
             file_select[n] = model
             print(f"{n}: {model}")
 
-        print('-'*(max(file_select.values()).__len__()+3))
+        print('-' * (max(file_select.values()).__len__() + 3))
         selector = input('Choose model number to load: ')
         try:
             selector = int(selector)
-        except:
+        except BaseException:
             sys.exit(
-                'Invalid input type, the program has been terminated.\n'\
+                'Invalid input type, the program has been terminated.\n'
                 'Please select a digit corresponding with desired model file.'
             )
         if int(selector) not in file_select:
@@ -138,7 +157,7 @@ def load_from_list_of_models(model_dir:str='src/datastore/models/'
             model = os.path.splitext(model)[0]
             if 'history' in model:
                 history_file = model
-                name_split = model.split('_history_',1)
+                name_split = model.split('_history_', 1)
             else:
                 model_file = model
 
@@ -148,21 +167,27 @@ def load_from_list_of_models(model_dir:str='src/datastore/models/'
         file_prefix=history_file,
         verbose=False
     )
-    print(f"Model and history with tag '{model_file}' succesfully " \
-        f"loaded from '{model_dir}'.")
+    print(f"Model and history with tag '{model_file}' succesfully "
+          f"loaded from '{model_dir}'.")
     return model, history
 
-def _check_dir_string(dir_string:str) -> str:
+
+def _check_dir_string(dir_string: str) -> str:
     """Ensure that a directory location is given as an appendable string."""
-    if dir_string[-1] != '/': dir_string=dir_string + '/'
+    if dir_string[-1] != '/':
+        dir_string = dir_string + '/'
     return dir_string
 
-def _get_filename(prefix:str, suffix:str=None) -> str:
+
+def _get_filename(prefix: str, suffix: str = None) -> str:
     """Returns a filename string based on a prefix and suffix property. If
     suffix is not declared, only the prefix value is used."""
 
-    if suffix is not None: return f"{prefix}_{suffix}"
-    else: return prefix
+    if suffix is not None:
+        return f"{prefix}_{suffix}"
+    else:
+        return prefix
+
 
 if __name__ == '__main__':
     import sys
