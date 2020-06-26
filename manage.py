@@ -62,12 +62,12 @@ FILE_SUFFIX = 'nov_2019'
 # designated file suffix from above. If files are loaded during execution,
 # the program will look for files with the file suffix from above.)
 
-CREATE_DATA_FILE = True  # if False, data will be pickle-loaded from file
+CREATE_DATA_FILE = False  # if False, data will be pickle-loaded from file
 FILTER_OPERATION = True  # If True, only in-operation data will be used
 REMOVE_FAULTY_DATA = True  # If False, faulty data is not removed from data
 # (It is important to exclude faulty data from the training data. Strictly
-# prevent setting REMOVE_FAULTY_DATA to false if the data is used for model
-# development.)
+# prevent setting REMOVE_FAULTY_DATA to false if the data will be  used for
+# model development.)
 
 # Faulty data that will be removed if REMOVE_FAULTY_DATA is True:
 FAULTY_DATA_INTERVAL = [
@@ -87,7 +87,7 @@ FAULTY_DATA_INTERVAL = [
 TRAINING_PERIOD = [
     2019,  # year (None: all available data will be used)
     11,  # month (None: all available data in given year will be used)
-    None  # day (None: all available data in given month will be used)
+    21  # day (None: all available data in given month will be used)
 ]
 
 # Reading and filtering of data:
@@ -95,10 +95,12 @@ CHUNKSIZE = None  # None: the model will load all data simultaneously
 
 # ------------------------------------------------------------ File management
 # Modeling operations --------------------------------------------------------
-DO_TRANSFORM = True  # will create scaler and scaled training and testing data
-DO_RESHAPE = True  # reshape data based on provided timesteps
-DO_MODELING = True  # create and train new model
+DO_TRANSFORM = False  # create scaler and scaled training and testing data
+DO_RESHAPE = False  # reshape data based on provided timesteps
+DO_MODELING = False  # create and train new model
 DO_TESTING = True  # test model on training data
+VISUALIZE_RESULTS = True  # Create plots visualizing modeling results
+
 # Create scaled faulty data, reshaped faulty data, and faulty scaler:
 GET_FAULTY = True
 # (Although there is previous REMOVE_FAULTY_DATA_INTERVAL option, the
@@ -107,7 +109,6 @@ GET_FAULTY = True
 # that must be considered, be sure to check these variables in the
 # 'Get faulty' section below.)
 
-VISUALIZE_RESULTS = True  # Create plots visualizing modeling results
 USE_TESTING_DATA = False  # test and visualize with testing data
 USE_FAULTY_DATA = not USE_TESTING_DATA  # test and visualize with faulty data
 # (Decide what data to use for testing and visualization of results. Either
@@ -141,20 +142,20 @@ UNITS_DENSE = 2
 DROPOUT_RATE = 0.2
 
 # Training parameters:
-EPOCHS = 20  # number of training repetition cycles
+EPOCHS = 200  # number of training repetition cycles
 # (One cycle is complete when the model has gone through one set of training
 # data samples.)
-BATCH_SIZE = 60  # samples processed before model is updated
+BATCH_SIZE = 600  # samples processed before model is updated
 # (larger batch size will decrease the update granularity, and consequently
 # decrease runtime. Therefore, there is a trade-off in the batch size choice.)
 
 # Testing parameters:
-THRESHOLD_PCT = 97.25  # percentage of data not deemed anomalies
+THRESHOLD_PCT = 98  # percentage of data not deemed anomalies
 # (The THRESHOLD_PCT can be either a scalar value or a list of values in
 # appropriate order according to the desired output columns to be predicted.
 # If a list of values is input, the threshold values will be calculated with
 # the threshold percentage for the specific prediction column.)
-ANOMALY_NEIGHBORHOOD = 0   # necessary number of consecutive values exceeding
+ANOMALY_NEIGHBORHOOD = 20   # necessary number of consecutive values exceeding
 # a threshold to trigger an anomaly
 # (THRESHOLD_PCT and ANOMALY_NEIGHBORHOOD should be used to tune the results
 # in order to retrieve a useful threshold value. By filtering out outliers the
@@ -279,16 +280,16 @@ else:  # load stored model
 if GET_FAULTY:
     F_SUFFIX = 'faulty_data'
     ACTION_PARAMETERS = [
-        True,  # Create faulty data file
-        True,  # Tranform data
-        True,  # Reshape data
+        False,  # Create faulty data file
+        False,  # Tranform data
+        False,  # Reshape data
     ]
     # Choose time interval of data selection (remember that the interval with
     # simulated error, defined in FAULTY_DATA_INTERVAL, must be included):
     F_INTERVAL = [
         2019,  # year (None: all available data will be used)
         11,  # month (None: all available data in given year will be used)
-        None  # day (None: all available data in given month will be used)
+        21  # day (None: all available data in given month will be used)
     ]
 
     # Get starting path for faulty data:

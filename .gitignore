@@ -2,7 +2,5 @@ venv
 __pycache__
 .vscode
 *.pckl
-.gitignore
 !test.pickl
-src/datastore/old
 *.h5

@@ -22,25 +22,25 @@ from src.api import memory as mem
 from src.api import modeling_funcs as mfnc
 #-----------------------------------------------------------------------------
 def create():
-    """Implement your creation function here."""
+    """Implement your model creation function here."""
     sys.exit('Not implemented.')
 
     # return model
 
 def train():
-    """Implement your training function here."""
+    """Implement your model training function here."""
     sys.exit('Not implemented.')
 
     # return model, history
 
 def test():
-    """Implement your testing function here."""
+    """Implement your model testing function here."""
     sys.exit('Not implemented.')
 
     # return performance
 
 def visualize():
-    """Implement your visualization function here."""
+    """Implement your result visualization function here."""
     sys.exit('Not implemented.')
 
     # return

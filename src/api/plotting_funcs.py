@@ -23,12 +23,21 @@ def get_historyplt(
                     title='Model training history'
                 ) -> None:
     """Plot history of model training during epochs as a function of chosen
-    loss paramter (e.g. mean absolute error, MAE). The plot will shop the
+    loss paramter (e.g. mean absolute error, MAE). The plot will show the
     error from both training and testing of the model."""
 
+    # Plot loss:
     for key, value in history.items():
-        plt.plot(value, label=key)
-        _add_plt_properties(xlabel=xlabel, ylabel=ylabel, title=title)
+        if key == 'loss' or key == 'val_loss':
+            plt.plot(value, label=key)
+            _add_plt_properties(xlabel=xlabel, ylabel=ylabel, title=title)
+    plt.show()
+
+    # Plot accuracy:
+    for key, value in history.items():
+        if key == 'accuracy' or key == 'val_accuracy':
+            plt.plot(value, label=key)
+            _add_plt_properties(xlabel=xlabel, ylabel=ylabel, title=title)
     plt.show()
 
 def get_predplt(
@@ -61,7 +70,7 @@ def get_distplt(
     above_t = dist[dist > threshold]
 
     f, axes = plt.subplots(2,2)
-    plt.title(
+    f.suptitle(
         "Distribution plots for the absolute prediction error for "\
             f"'{signal}' with threshold: {threshold:.2f}"
         )
@@ -151,6 +160,7 @@ def get_anomalyplt(
     anomalies are plotted as single points corresponding with the state value
     at the given anomaly timestep. """
     anom_dps = real[anoms==True]
+    plt.title(f"Anomalies detected for '{signal}'")
     plt.scatter(anom_dps.index, anom_dps, color='red',
                 label=f'anomaly (n:{anom_dps.count()})')
     plt.plot(real, label=f'state values (n:{real.count()})')
