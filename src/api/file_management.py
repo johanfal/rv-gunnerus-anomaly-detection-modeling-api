@@ -3,7 +3,7 @@
 # Purpose: handle file management mostly related to raw csv-files.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26. june 2020
+# Last modified: 26.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import datetime

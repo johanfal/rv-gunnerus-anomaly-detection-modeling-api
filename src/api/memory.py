@@ -5,7 +5,7 @@
 # and '.h5' (Keras model format).
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26. june 2020
+# Last modified: 26.6.2020
 # -----------------------------------------------------------------------------
 # Standard library:
 import os

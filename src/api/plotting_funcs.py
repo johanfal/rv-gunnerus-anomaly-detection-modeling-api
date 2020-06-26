@@ -1,10 +1,10 @@
 #-----------------------------------------------------------------------------
 # File: plotting_funcs.py
-# Purpose:
-#   
+# Purpose: add plotting functionality to visualize results after modeling and
+# training a machinel learning model.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 
+# Last modified: 26.6.2020
 #-----------------------------------------------------------------------------
 # Standard library:
 import copy

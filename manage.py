@@ -6,7 +6,7 @@
 # file and memory management.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26. june 2020
+# Last modified: 26.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import sys
@@ -147,6 +147,10 @@ BATCH_SIZE = 60  # samples processed before model is updated
 
 # Testing parameters:
 THRESHOLD_PCT = 97.25  # percentage of data not deemed anomalies
+# (The THRESHOLD_PCT can be either a scalar value or a list of values in
+# appropriate order according to the desired output columns to be predicted.
+# If a list of values is input, the threshold values will be calculated with
+# the threshold percentage for the specific prediction column.)
 ANOMALY_NEIGHBORHOOD = 0   # necessary number of consecutive values exceeding
 # a threshold to trigger an anomaly
 # (THRESHOLD_PCT and ANOMALY_NEIGHBORHOOD should be used to tune the results
