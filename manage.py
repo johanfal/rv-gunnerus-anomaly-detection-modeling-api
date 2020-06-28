@@ -9,16 +9,10 @@
 # module.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26.6.2020
+# Last modified: 28.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import sys
-
-# External modules:
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 
 # Local API:
 from src.api import file_management as filemag
