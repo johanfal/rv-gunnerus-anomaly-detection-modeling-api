@@ -3,7 +3,7 @@
 # Purpose: handle file management mostly related to raw csv-files.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26.6.2020
+# Last modified: 29.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import datetime
@@ -56,7 +56,7 @@ def get_system_list(sensor: str, component: str = None) -> dict:
     """Returns a dictionary of systems and units from specified columns in the
     'rvgunnerus_systems.json' file."""
 
-    with open('datastore/systems/rvgunnerus_systems.json', 'r') as f:
+    with open('src/datastore/systems/rvgunnerus_systems.json', 'r') as f:
         json_columns = json.load(f)
     if not component:
         return json_columns['sensors'][sensor]
