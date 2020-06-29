@@ -9,16 +9,10 @@
 # module.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26.6.2020
+# Last modified: 29.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import sys
-
-# External modules:
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 
 # Local API:
 from src.api import file_management as filemag
@@ -62,7 +56,7 @@ FILE_SUFFIX = None
 # designated file suffix from above. If files are loaded during execution,
 # the program will look for files with the file suffix from above.)
 
-CREATE_DATA_FILE = True  # if False, data will be pickle-loaded from file
+CREATE_DATA_FILE = False  # if False, data will be pickle-loaded from file
 FILTER_OPERATION = True  # If True, only in-operation data will be used
 REMOVE_FAULTY_DATA = True  # If False, faulty data is not removed from data
 # (It is important to exclude faulty data from the training data. Strictly
@@ -95,9 +89,9 @@ CHUNKSIZE = None  # None: the model will load all data simultaneously
 
 # ------------------------------------------------------------ File management
 # Modeling operations --------------------------------------------------------
-DO_TRANSFORM = True  # create scaler and scaled training and testing data
-DO_RESHAPE = True  # reshape data based on provided timesteps
-DO_MODELING = True  # create and train new model
+DO_TRANSFORM = False  # create scaler and scaled training and testing data
+DO_RESHAPE = False  # reshape data based on provided timesteps
+DO_MODELING = False  # create and train new model
 DO_TESTING = True  # test model on training data
 VISUALIZE_RESULTS = True  # Create plots visualizing modeling results
 
