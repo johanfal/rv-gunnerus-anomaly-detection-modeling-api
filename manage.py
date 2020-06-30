@@ -9,7 +9,7 @@
 # module.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 29.6.2020
+# Last modified: 30.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import sys
@@ -131,15 +131,15 @@ SCALER_TYPE = 'minmax'  # currently supported scalers: 'minmax', 'standard'
 # the get_scaler() function in src/modeling/helper_funcs.py as indicated.)
 
 # Model parameters:
-UNITS_LSTM = 32
+UNITS_LSTM = 128
 UNITS_DENSE = 2
 DROPOUT_RATE = 0.2
 
 # Training parameters:
-EPOCHS = 60  # number of training repetition cycles
+EPOCHS = 30  # number of training repetition cycles
 # (One cycle is complete when the model has gone through one set of training
 # data samples.)
-BATCH_SIZE = 600  # samples processed before model is updated
+BATCH_SIZE = 128  # samples processed before model is updated
 # (larger batch size will decrease the update granularity, and consequently
 # decrease runtime. Therefore, there is a trade-off in the batch size choice.)
 
@@ -176,7 +176,7 @@ if CREATE_DATA_FILE:
         file_suffix=FILE_SUFFIX,
         faulty_data=FAULTY_DATA_INTERVAL
     )
-else:  # load stored data file:
+elif DO_TRANSFORM:  # load stored data if it is needed for transformation:
     data = mem.load(file_suffix=FILE_SUFFIX)
     if data.index.dtype == 'datetime64[ns]':
         tperiod = [data.index[0], data.index[-1]]
