@@ -5,11 +5,11 @@
 # file, 'manage.py' also handles administrative variables, mostly related to
 # file and memory management. By default, the file uses the user-made model
 # file found in 'modeling/model.py'. If it is desired to use the example model
-# instead, replace all calls to the model module with the example_model
+# instead, replace all calls to the model module with the model_example
 # module.
 #
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 28.6.2020
+# Last modified: 30.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import sys
@@ -18,7 +18,7 @@ import sys
 from src.api import file_management as filemag
 from src.api import memory as mem
 from src.api import modeling_funcs as mfnc
-from src.modeling import model_example_lstm as example_model
+from src.modeling import model_example_lstm as model_example
 
 # Module import of your model, initially located in src/modeling/model.py:
 from src.modeling import model as model  # modify this if you change filename
@@ -123,7 +123,7 @@ USE_FAULTY_DATA = not USE_TESTING_DATA  # test and visualize with faulty data
 # Data parameters:
 TRAINING_PCT = 0.8  # fraction of data used for training sets
 # (the remainder will be used for testing)
-TIMESTEPS = 30  # timesteps used per prediction
+TIMESTEPS = 10  # timesteps used per prediction
 # (If timesteps is e.g. 10, each output value is predicted based on the last
 # 10 timesteps at the point of prediciton.)
 SCALER_TYPE = 'minmax'  # currently supported scalers: 'minmax', 'standard'
@@ -131,15 +131,15 @@ SCALER_TYPE = 'minmax'  # currently supported scalers: 'minmax', 'standard'
 # the get_scaler() function in src/modeling/helper_funcs.py as indicated.)
 
 # Model parameters:
-UNITS_LSTM = 32
+UNITS_LSTM = 128
 UNITS_DENSE = 2
 DROPOUT_RATE = 0.2
 
 # Training parameters:
-EPOCHS = 60  # number of training repetition cycles
+EPOCHS = 30  # number of training repetition cycles
 # (One cycle is complete when the model has gone through one set of training
 # data samples.)
-BATCH_SIZE = 600  # samples processed before model is updated
+BATCH_SIZE = 128  # samples processed before model is updated
 # (larger batch size will decrease the update granularity, and consequently
 # decrease runtime. Therefore, there is a trade-off in the batch size choice.)
 
@@ -176,7 +176,7 @@ if CREATE_DATA_FILE:
         file_suffix=FILE_SUFFIX,
         faulty_data=FAULTY_DATA_INTERVAL
     )
-else:  # load stored data file:
+elif DO_TRANSFORM:  # load stored data if it is needed for transformation:
     data = mem.load(file_suffix=FILE_SUFFIX)
     if data.index.dtype == 'datetime64[ns]':
         tperiod = [data.index[0], data.index[-1]]
@@ -232,7 +232,7 @@ else:  # load stored, reshaped data:
 # Create and test model and save resulting model and history files:
 if DO_MODELING:
     # Create model:
-    model = model.create(
+    model = model_example.create(
         X_train.shape[1:],
         UNITS_LSTM=UNITS_LSTM,
         UNITS_DENSE=UNITS_DENSE,
@@ -240,7 +240,7 @@ if DO_MODELING:
     )
 
     # Train model:
-    [model, history] = model.train(
+    [model, history] = model_example.train(
         model,
         X_train,
         y_train,
@@ -309,7 +309,7 @@ if GET_FAULTY:
 if DO_TESTING:
     # Predict values using testing data:
     if USE_TESTING_DATA:
-        [performance, absolute_error, thresholds] = model.test(
+        [performance, absolute_error, thresholds] = model_example.test(
             model,
             history,
             df_test=df_test,
@@ -322,7 +322,7 @@ if DO_TESTING:
 
     # Predict values using faulty data:
     if USE_FAULTY_DATA:
-        [f_performance, f_absolute_error, f_thresholds] = model.test(
+        [f_performance, f_absolute_error, f_thresholds] = model_example.test(
             model,
             history,
             df_test=df_faulty,
@@ -340,7 +340,7 @@ if DO_TESTING:
 if VISUALIZE_RESULTS:
     # Create plots using testing data:
     if USE_TESTING_DATA:
-        model.visualize(
+        model_example.visualize(
             performance=performance,
             history=history,
             thresholds=thresholds,
@@ -350,7 +350,7 @@ if VISUALIZE_RESULTS:
 
     # Create plots using faulty data:
     if USE_FAULTY_DATA:
-        model.visualize(
+        model_example.visualize(
             performance=f_performance,
             history=history,
             thresholds=f_thresholds,

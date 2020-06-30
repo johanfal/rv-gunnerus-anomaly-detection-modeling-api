@@ -1,6 +1,9 @@
 venv
 __pycache__
 .vscode
-*.pckl
-!test.pickl
 *.h5
+*.pckl
+!model_example.h5
+!model_history_example.pckl
+!example_scaler.pckl
+!test.pickl
