@@ -6,7 +6,7 @@
 # set to be as simple as possible, both to demonstrate the power of LSTM
 # models for anomaly detection, but also t be easy to understand.
 # Created by: Johan Fredrik Alvsaker
-# Last modified: 26.6.2020
+# Last modified: 30.6.2020
 # ----------------------------------------------------------------------------
 # Standard library:
 import os
@@ -56,8 +56,8 @@ def create(
     model.add(keras.layers.Dense(DENSE_UNITS))
 
     # Compile model using MAE (mean absolute error), adam optimizer
-    # (stochastic gradient descent algorithm), and accuracy metrics:
-    model.compile(loss='mae', optimizer='adam', metrics=['accuracy'])
+    # (stochastic gradient descent algorithm):
+    model.compile(loss='mae', optimizer='adam')
 
     if verbose:
         model.summary()  # optional printout of key model properties
