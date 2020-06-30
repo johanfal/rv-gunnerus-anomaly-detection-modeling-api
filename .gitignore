@@ -3,6 +3,7 @@ __pycache__
 .vscode
 *.h5
 *.pckl
-!example_model.h5
+!model_example.h5
+!model_history_example.pckl
 !example_scaler.pckl
 !test.pickl
